@@ -13,11 +13,14 @@ pub enum TokenType {
     Multiply,
     Comma,
     Less,
+    LessEqual,
     Greater,
+    GreaterEqual,
     Assign,
+    Equal,
 
-    Identifier,
     Number,
+    Identifier,
 
     Eof,
 }
@@ -64,10 +67,13 @@ fn format_type(t: &TokenType) -> &'static str {
         TokenType::Multiply => "MULTIPLY",
         TokenType::Comma => "COMMA",
         TokenType::Less => "LESS",
+        TokenType::LessEqual => "LESS_EQUAL",
         TokenType::Greater => "GREATER",
+        TokenType::GreaterEqual => "GREATER_EQUAL",
         TokenType::Assign => "ASSIGN",
-        TokenType::Identifier => "IDENTIFIER",
+        TokenType::Equal => "EQUAL",
         TokenType::Number => "NUMBER",
+        TokenType::Identifier => "IDENTIFIER",
         TokenType::Eof => "EOF",
     }
 }

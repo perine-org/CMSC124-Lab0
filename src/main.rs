@@ -5,7 +5,7 @@ use scanner::Scanner;
 use std::io::{self, Write};
 
 fn main() {
-    print!("Enter input: ");
+    print!("Enter : ");
     io::stdout().flush().expect("Failed to flush stdout");
 
     let mut source = String::new();

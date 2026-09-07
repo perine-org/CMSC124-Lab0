@@ -21,6 +21,7 @@ impl Scanner {
         }
     }
 
+    // loops over the whole input, one token at a time,
     pub fn scan_tokens(&mut self) -> &Vec<Token> {
         while !self.is_at_end() {
             self.start = self.current;
@@ -32,6 +33,7 @@ impl Scanner {
         &self.tokens
     }
 
+    // determines what type of token
     fn scan_token(&mut self) {
         let c = self.advance();
 
@@ -50,6 +52,7 @@ impl Scanner {
             '>' => self.add_token(TokenType::Greater),
             '=' => self.add_token(TokenType::Assign),
 
+            // handles tabs whitespaces chuchu
             ' ' | '\r' | '\t' => {}
             '\n' => self.line += 1,
 
@@ -65,6 +68,7 @@ impl Scanner {
         }
     }
 
+    // handles words and names
     fn identifier(&mut self) {
         while is_identifier_continue(self.peek()) {
             self.advance();
@@ -73,7 +77,7 @@ impl Scanner {
         self.add_token(TokenType::Identifier);
     }
 
-
+    // handles numbers
     fn number(&mut self) {
         while self.peek().is_ascii_digit() {
             self.advance();
@@ -89,6 +93,8 @@ impl Scanner {
         self.add_token(TokenType::Number);
     }
 
+
+    // a helper that lets the scanner "look ahead"
     fn peek_next(&self) -> char {
         if self.current + 1 >= self.source.len() {
             '\0'
@@ -97,9 +103,12 @@ impl Scanner {
         }
     }
 
+    // a simple check:has the scanner run out of input
     fn is_at_end(&self) -> bool {
         self.current >= self.source.len()
     }
+
+    // moves forward one character and returns it
 
     fn advance(&mut self) -> char {
         let c = self.source[self.current];
@@ -107,6 +116,7 @@ impl Scanner {
         c
     }
 
+    // loks at the next character without consuming it
     fn peek(&self) -> char {
         if self.is_at_end() {
             '\0'
@@ -119,6 +129,8 @@ impl Scanner {
         let text: String = self.source[self.start..self.current].iter().collect();
         self.tokens.push(Token::new(token_type, text, self.line));
     }
+
+    // scanning didn't go cleanly.
 
     fn error(&mut self, message: &str) {
         self.had_error = true;
