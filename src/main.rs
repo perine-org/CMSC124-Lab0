@@ -11,5 +11,4 @@ fn main() {
         eprintln!("Usage: {} <path-to-source-file>", args[0]);
         std::process::exit(64);
     }
-
-    let source = fs::read_to_string(&args[1]).expect("Failed to read source file");
+}
