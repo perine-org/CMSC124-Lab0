@@ -2,20 +2,14 @@ mod scanner;
 mod token;
 
 use scanner::Scanner;
-use std::io::{self, Write};
+use std::env;
+use std::fs;
 
 fn main() {
-    print!("Enter : ");
-    io::stdout().flush().expect("Failed to flush stdout");
-
-    let mut source = String::new();
-    io::stdin()
-        .read_line(&mut source)
-        .expect("Failed to read line");
-
-    let mut s = Scanner::new(&source);
-    let tokens = s.scan_tokens();
-    for t in tokens {
-        println!("{}", t);
+    let args: Vec<String> = env::args().collect();
+    if args.len() < 2 {
+        eprintln!("Usage: {} <path-to-source-file>", args[0]);
+        std::process::exit(64);
     }
-}
+
+    let source = fs::read_to_string(&args[1]).expect("Failed to read source file");
