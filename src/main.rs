@@ -11,4 +11,16 @@ fn main() {
         eprintln!("Usage: {} <path-to-source-file>", args[0]);
         std::process::exit(64);
     }
+
+    let source = fs::read_to_string(&args[1]).expect("Failed to read source file");
+
+    let mut s = Scanner::new(&source);
+    let tokens = s.scan_tokens();
+    for t in tokens {
+        println!("{}", t);
+    }
+
+    if s.had_error {
+        std::process::exit(65);
+    }
 }
