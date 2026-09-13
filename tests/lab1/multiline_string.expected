@@ -1,0 +1,6 @@
+Token(type=SET, lexeme=set, line=1)
+Token(type=IDENTIFIER, lexeme=x, line=1)
+Token(type=ASSIGN, lexeme==, line=1)
+Token(type=STRING, lexeme="line one
+line two", line=2)
+Token(type=EOF, lexeme=, line=3)
