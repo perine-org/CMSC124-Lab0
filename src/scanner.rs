@@ -148,7 +148,7 @@ impl Scanner {
         self.add_token_with_literal(TokenType::Number, Literal::Number(value));
     }
 
-    // handles string literals
+        // handles string literals
     fn string(&mut self) {
         while self.peek() != '"' && !self.is_at_end() {
             if self.peek() == '\n' {
@@ -163,7 +163,10 @@ impl Scanner {
         }
 
         self.advance(); // consume closing "
-        self.add_token(TokenType::Str);
+
+        // extract the string value between the quotes
+        let value: String = self.source[self.start + 1..self.current - 1].iter().collect();
+        self.add_token_with_literal(TokenType::Str, Literal::Str(value));
     }
 
     // function for reading block comments
