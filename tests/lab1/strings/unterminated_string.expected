@@ -1,4 +1,4 @@
-Token(type=SET, lexeme=set, line=1)
-Token(type=IDENTIFIER, lexeme=broken, line=1)
-Token(type=ASSIGN, lexeme==, line=1)
-Token(type=EOF, lexeme=, line=2)
+Token(type=SET, lexeme=set, literal=null, line=1)
+Token(type=IDENTIFIER, lexeme=broken, literal=null, line=1)
+Token(type=ASSIGN, lexeme==, literal=null, line=1)
+Token(type=EOF, lexeme=, literal=null, line=2)
