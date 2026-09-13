@@ -1,0 +1,4 @@
+set x ! inline comment after code
+!!! block comment
+spanning multiple lines !!! deal y
+! trailing comment with no newline after
