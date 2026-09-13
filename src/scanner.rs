@@ -1,4 +1,4 @@
-use crate::token::{Token, TokenType};
+use crate::token::{Literal, Token, TokenType};
 
 pub struct Scanner {
     source: Vec<char>,
@@ -21,7 +21,7 @@ impl Scanner {
         }
     }
 
-    // loops over the whole input, one token at a time,
+    // loops over the whole input, one token at a time
     pub fn scan_tokens(&mut self) -> &Vec<Token> {
         while !self.is_at_end() {
             self.start = self.current;
@@ -29,7 +29,7 @@ impl Scanner {
         }
 
         self.tokens
-            .push(Token::new(TokenType::Eof, String::new(), self.line));
+            .push(Token::new(TokenType::Eof, String::new(), Literal::None, self.line));
         &self.tokens
     }
 
@@ -72,7 +72,8 @@ impl Scanner {
                     self.add_token(TokenType::Assign);
                 }
             }
-            // handles tabs whitespaces chuchu
+
+            // handles tabs and whitespace
             ' ' | '\r' | '\t' => {}
             '\n' => self.line += 1,
 
@@ -97,22 +98,23 @@ impl Scanner {
         self.add_token(TokenType::Identifier);
     }
 
-    // handles numbers
+    // handles numbers, including decimals
     fn number(&mut self) {
         while self.peek().is_ascii_digit() {
             self.advance();
         }
 
         if self.peek() == '.' && self.peek_next().is_ascii_digit() {
-            self.advance(); 
+            self.advance();
             while self.peek().is_ascii_digit() {
                 self.advance();
             }
         }
 
-        self.add_token(TokenType::Number);
+        let text: String = self.source[self.start..self.current].iter().collect();
+        let value: f64 = text.parse().expect("Failed to parse number literal");
+        self.add_token_with_literal(TokenType::Number, Literal::Number(value));
     }
-
 
     // a helper that lets the scanner "look ahead"
     fn peek_next(&self) -> char {
@@ -123,20 +125,19 @@ impl Scanner {
         }
     }
 
-    // a simple check:has the scanner run out of input
+    // a simple check: has the scanner run out of input
     fn is_at_end(&self) -> bool {
         self.current >= self.source.len()
     }
 
     // moves forward one character and returns it
-
     fn advance(&mut self) -> char {
         let c = self.source[self.current];
         self.current += 1;
         c
     }
 
-    // loks at the next character without consuming it
+    // looks at the next character without consuming it
     fn peek(&self) -> char {
         if self.is_at_end() {
             '\0'
@@ -145,13 +146,18 @@ impl Scanner {
         }
     }
 
+    // for tokens with no literal value
     fn add_token(&mut self, token_type: TokenType) {
-        let text: String = self.source[self.start..self.current].iter().collect();
-        self.tokens.push(Token::new(token_type, text, self.line));
+        self.add_token_with_literal(token_type, Literal::None);
     }
 
-    // scanning didn't go cleanly.
+    // for tokens that carry an actual value
+    fn add_token_with_literal(&mut self, token_type: TokenType, literal: Literal) {
+        let text: String = self.source[self.start..self.current].iter().collect();
+        self.tokens.push(Token::new(token_type, text, literal, self.line));
+    }
 
+    // scanning didn't go cleanly
     fn error(&mut self, message: &str) {
         self.had_error = true;
         eprintln!("[line {}] Error: {}", self.line, message);
