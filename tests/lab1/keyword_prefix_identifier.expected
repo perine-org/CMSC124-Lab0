@@ -1,0 +1,2 @@
+Token(type=IDENTIFIER, lexeme=setter, line=1)
+Token(type=EOF, lexeme=, line=2)
