@@ -48,10 +48,30 @@ impl Scanner {
             '/' => self.add_token(TokenType::Divide),
             '*' => self.add_token(TokenType::Multiply),
             ',' => self.add_token(TokenType::Comma),
-            '<' => self.add_token(TokenType::Less),
-            '>' => self.add_token(TokenType::Greater),
-            '=' => self.add_token(TokenType::Assign),
-
+            '<' => {
+                if self.peek() == '=' {
+                    self.advance();
+                    self.add_token(TokenType::LessEqual);
+                } else {
+                    self.add_token(TokenType::Less);
+                }
+            }
+            '>' => {
+                if self.peek() == '=' {
+                    self.advance();
+                    self.add_token(TokenType::GreaterEqual);
+                } else {
+                    self.add_token(TokenType::Greater);
+                }
+            }
+            '=' => {
+                if self.peek() == '=' {
+                    self.advance();
+                    self.add_token(TokenType::Equal);
+                } else {
+                    self.add_token(TokenType::Assign);
+                }
+            }
             // handles tabs whitespaces chuchu
             ' ' | '\r' | '\t' => {}
             '\n' => self.line += 1,
