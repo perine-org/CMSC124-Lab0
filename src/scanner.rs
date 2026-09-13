@@ -21,6 +21,7 @@ impl Scanner {
         }
     }
 
+    // loops over the whole input, one token at a time,
     pub fn scan_tokens(&mut self) -> &Vec<Token> {
         while !self.is_at_end() {
             self.start = self.current;
@@ -32,6 +33,7 @@ impl Scanner {
         &self.tokens
     }
 
+    // determines what type of token
     fn scan_token(&mut self) {
         let c = self.advance();
 
@@ -46,14 +48,33 @@ impl Scanner {
             '/' => self.add_token(TokenType::Divide),
             '*' => self.add_token(TokenType::Multiply),
             ',' => self.add_token(TokenType::Comma),
-            '<' => self.add_token(TokenType::Less),
-            '>' => self.add_token(TokenType::Greater),
-            '=' => self.add_token(TokenType::Assign),
-
+            '<' => {
+                if self.peek() == '=' {
+                    self.advance();
+                    self.add_token(TokenType::LessEqual);
+                } else {
+                    self.add_token(TokenType::Less);
+                }
+            }
+            '>' => {
+                if self.peek() == '=' {
+                    self.advance();
+                    self.add_token(TokenType::GreaterEqual);
+                } else {
+                    self.add_token(TokenType::Greater);
+                }
+            }
+            '=' => {
+                if self.peek() == '=' {
+                    self.advance();
+                    self.add_token(TokenType::Equal);
+                } else {
+                    self.add_token(TokenType::Assign);
+                }
+            }
+            // handles tabs whitespaces chuchu
             ' ' | '\r' | '\t' => {}
             '\n' => self.line += 1,
-
-            '"' => self.string(),
 
             _ => {
                 if c.is_ascii_digit() {
@@ -67,49 +88,16 @@ impl Scanner {
         }
     }
 
+    // handles words and names
     fn identifier(&mut self) {
         while is_identifier_continue(self.peek()) {
             self.advance();
         }
 
-        let text: String = self.source[self.start..self.current].iter().collect();
-        let token_type = match text.as_str() {
-            "set" => TokenType::Set,
-            "deal" => TokenType::Deal,
-            "call" => TokenType::Call,
-            "flush" => TokenType::Flush,
-            "fold" => TokenType::Fold,
-            "bet" => TokenType::Bet,
-            "bust" => TokenType::Bust,
-            "round" => TokenType::Round,
-            "bluff" => TokenType::Bluff,
-            "draw" => TokenType::Draw,
-            "raise" => TokenType::Raise,
-            "show" => TokenType::Show,
-            _ => TokenType::Identifier,
-        };
-        self.add_token(token_type);
-        
-    }
-    
-    fn string(&mut self) {
-        while self.peek() != '"' && !self.is_at_end() {
-            if self.peek() == '\n' {
-                self.line += 1;
-            }
-            self.advance();
-        }
-
-        if self.is_at_end() {
-            self.error("Unterminated string.");
-            return;
-        }
-
-        self.advance(); // consume closing "
-        self.add_token(TokenType::Str);
+        self.add_token(TokenType::Identifier);
     }
 
-
+    // handles numbers
     fn number(&mut self) {
         while self.peek().is_ascii_digit() {
             self.advance();
@@ -125,6 +113,8 @@ impl Scanner {
         self.add_token(TokenType::Number);
     }
 
+
+    // a helper that lets the scanner "look ahead"
     fn peek_next(&self) -> char {
         if self.current + 1 >= self.source.len() {
             '\0'
@@ -133,9 +123,12 @@ impl Scanner {
         }
     }
 
+    // a simple check:has the scanner run out of input
     fn is_at_end(&self) -> bool {
         self.current >= self.source.len()
     }
+
+    // moves forward one character and returns it
 
     fn advance(&mut self) -> char {
         let c = self.source[self.current];
@@ -143,6 +136,7 @@ impl Scanner {
         c
     }
 
+    // loks at the next character without consuming it
     fn peek(&self) -> char {
         if self.is_at_end() {
             '\0'
@@ -155,6 +149,8 @@ impl Scanner {
         let text: String = self.source[self.start..self.current].iter().collect();
         self.tokens.push(Token::new(token_type, text, self.line));
     }
+
+    // scanning didn't go cleanly.
 
     fn error(&mut self, message: &str) {
         self.had_error = true;
