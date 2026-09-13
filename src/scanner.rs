@@ -73,8 +73,20 @@ impl Scanner {
                 }
             }
 
-            // handles tabs and whitespace
-            '"' => self.string(), 
+            // maximal munch: check for the longer !!! form before falling back to !
+            '!' => {
+                if self.peek() == '!' && self.peek_next() == '!' {
+                    self.advance(); 
+                    self.advance(); 
+                    self.block_comment();
+                } else {
+                    while self.peek() != '\n' && !self.is_at_end() {
+                        self.advance();
+                    }
+                }
+            }
+
+            '"' => self.string(),
 
             // handles tabs whitespaces chuchu
             ' ' | '\r' | '\t' => {}
@@ -154,6 +166,25 @@ impl Scanner {
         self.add_token(TokenType::Str);
     }
 
+    // function for reading block comments
+    fn block_comment(&mut self) {
+        while !self.is_at_end() {
+            if self.peek() == '!' && self.peek_next() == '!' && self.peek_next_next() == '!' {
+                self.advance(); 
+                self.advance();
+                self.advance();
+                return; 
+            }
+
+            if self.peek() == '\n' {
+                self.line += 1; // keep line numbers through the comment
+            }
+            self.advance();
+        }
+
+        // fell through the loop: hit EOF without finding a closing !!!
+        self.error("Unterminated block comment.");
+    }
 
     // a helper that lets the scanner "look ahead"
     fn peek_next(&self) -> char {
@@ -161,6 +192,15 @@ impl Scanner {
             '\0'
         } else {
             self.source[self.current + 1]
+        }
+    }
+
+    // looks two characters ahead without consuming, needed for !!!
+    fn peek_next_next(&self) -> char {
+        if self.current + 2 >= self.source.len() {
+            '\0'
+        } else {
+            self.source[self.current + 2]
         }
     }
 
