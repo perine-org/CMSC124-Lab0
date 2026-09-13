@@ -40,18 +40,38 @@ pub enum TokenType {
     Eof,
 }
 
+// represents the literal value a token carries, if any.
+#[derive(Debug, Clone)]
+pub enum Literal {
+    Number(f64),
+    Str(String),
+    None, // keywords, punctuation, operators carry no literal
+}
+
+impl fmt::Display for Literal {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Literal::Number(n) => write!(f, "{}", n),
+            Literal::Str(s) => write!(f, "{}", s),
+            Literal::None => write!(f, "null"),
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Token {
     pub token_type: TokenType,
     pub lexeme: String,
+    pub literal: Literal,
     pub line: usize,
 }
 
 impl Token {
-    pub fn new(token_type: TokenType, lexeme: String, line: usize) -> Self {
+    pub fn new(token_type: TokenType, lexeme: String, literal: Literal, line: usize) -> Self {
         Token {
             token_type,
             lexeme,
+            literal,
             line,
         }
     }
@@ -61,9 +81,10 @@ impl fmt::Display for Token {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "Token(type={}, lexeme={}, line={})",
+            "Token(type={}, lexeme={}, literal={}, line={})",
             format_type(&self.token_type),
             self.lexeme,
+            self.literal,
             self.line
         )
     }

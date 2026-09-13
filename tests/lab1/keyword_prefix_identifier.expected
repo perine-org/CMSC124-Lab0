@@ -1,2 +1,2 @@
-Token(type=IDENTIFIER, lexeme=setter, line=1)
-Token(type=EOF, lexeme=, line=2)
+Token(type=IDENTIFIER, lexeme=setter, literal=null, line=1)
+Token(type=EOF, lexeme=, literal=null, line=2)

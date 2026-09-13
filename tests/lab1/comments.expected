@@ -1,0 +1,5 @@
+Token(type=SET, lexeme=set, literal=null, line=1)
+Token(type=IDENTIFIER, lexeme=x, literal=null, line=1)
+Token(type=DEAL, lexeme=deal, literal=null, line=3)
+Token(type=IDENTIFIER, lexeme=y, literal=null, line=3)
+Token(type=EOF, lexeme=, literal=null, line=4)
