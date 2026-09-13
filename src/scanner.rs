@@ -74,6 +74,9 @@ impl Scanner {
             }
 
             // handles tabs and whitespace
+            '"' => self.string(), 
+
+            // handles tabs whitespaces chuchu
             ' ' | '\r' | '\t' => {}
             '\n' => self.line += 1,
 
@@ -95,7 +98,24 @@ impl Scanner {
             self.advance();
         }
 
-        self.add_token(TokenType::Identifier);
+        let text: String = self.source[self.start..self.current].iter().collect();
+        let token_type = match text.as_str() {
+            "set" => TokenType::Set,
+            "deal" => TokenType::Deal,
+            "call" => TokenType::Call,
+            "flush" => TokenType::Flush,
+            "fold" => TokenType::Fold,
+            "bet" => TokenType::Bet,
+            "bust" => TokenType::Bust,
+            "round" => TokenType::Round,
+            "bluff" => TokenType::Bluff,
+            "draw" => TokenType::Draw,
+            "raise" => TokenType::Raise,
+            "show" => TokenType::Show,
+            _ => TokenType::Identifier,
+        };
+
+        self.add_token(token_type);
     }
 
     // handles numbers, including decimals
@@ -115,6 +135,25 @@ impl Scanner {
         let value: f64 = text.parse().expect("Failed to parse number literal");
         self.add_token_with_literal(TokenType::Number, Literal::Number(value));
     }
+
+    // handles string literals
+    fn string(&mut self) {
+        while self.peek() != '"' && !self.is_at_end() {
+            if self.peek() == '\n' {
+                self.line += 1;
+            }
+            self.advance();
+        }
+
+        if self.is_at_end() {
+            self.error("Unterminated string.");
+            return;
+        }
+
+        self.advance(); // consume closing "
+        self.add_token(TokenType::Str);
+    }
+
 
     // a helper that lets the scanner "look ahead"
     fn peek_next(&self) -> char {

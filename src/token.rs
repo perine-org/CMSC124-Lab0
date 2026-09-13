@@ -21,6 +21,21 @@ pub enum TokenType {
 
     Number,
     Identifier,
+    Str,
+
+    
+    Set,
+    Deal,
+    Call,
+    Flush,
+    Fold,
+    Bet,
+    Bust,
+    Round,
+    Bluff,
+    Draw,
+    Raise,
+    Show,
 
     Eof,
 }
@@ -95,6 +110,19 @@ fn format_type(t: &TokenType) -> &'static str {
         TokenType::Equal => "EQUAL",
         TokenType::Number => "NUMBER",
         TokenType::Identifier => "IDENTIFIER",
+        TokenType::Str => "STRING",
+        TokenType::Set => "SET",
+        TokenType::Deal => "DEAL",
+        TokenType::Call => "CALL",
+        TokenType::Flush => "FLUSH",
+        TokenType::Fold => "FOLD",
+        TokenType::Bet => "BET",
+        TokenType::Bust => "BUST",
+        TokenType::Round => "ROUND",
+        TokenType::Bluff => "BLUFF",
+        TokenType::Draw => "DRAW",
+        TokenType::Raise => "RAISE",
+        TokenType::Show => "SHOW",
         TokenType::Eof => "EOF",
     }
 }
