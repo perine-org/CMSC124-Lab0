@@ -141,7 +141,11 @@ impl Scanner {
             _ => TokenType::Identifier,
         };
 
-        self.add_token(token_type);
+        match token_type {
+            TokenType::True => self.add_token_with_literal(TokenType::True, Literal::Bool(true)),
+            TokenType::False => self.add_token_with_literal(TokenType::False, Literal::Bool(false)),
+            other => self.add_token(other),
+        }
     }
 
     // handles numbers, including decimals
