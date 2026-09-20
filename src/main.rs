@@ -57,6 +57,6 @@ fn run_parse(path: &str) {
     }
 
     let mut p = parser::Parser::new(tokens);
-    let expr = p.parse_expression();
-    println!("{:?}", expr);
+    let expr = p.parse();
+    println!("{}", expr);
 }
