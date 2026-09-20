@@ -78,20 +78,19 @@ impl Scanner {
             // maximal munch: check for the longer !!! form before falling back to !
             '!' => {
                 if self.peek() == '!' && self.peek_next() == '!' {
-                    // !!!  -> block comment
                     self.advance();
                     self.advance();
                     self.block_comment();
                 } else if self.peek() == '!' {
-                    // !!   -> line comment
                     self.advance();
                     while self.peek() != '\n' && !self.is_at_end() {
                         self.advance();
                     }
                 } else if self.peek() == '=' {
-                    // !=   -> not-equal
                     self.advance();
                     self.add_token(TokenType::NotEqual);
+                } else {
+                    self.error(&format!("Unexpected character '!'."));
                 }
             }
 
