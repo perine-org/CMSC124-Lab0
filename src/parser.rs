@@ -60,7 +60,7 @@ impl Parser {
     fn factor(&mut self) -> Expr {
         let mut expr = self.primary();
 
-        while self.match_types(&[TokenType::Divide, TokenType::Multiply]) {
+        while self.match_types(&[TokenType::Divide, TokenType::Multiply, TokenType::Modulo]) {
             let operator = self.previous();
             let right = self.primary();
             expr = Expr::Binary {
