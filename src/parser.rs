@@ -23,6 +23,16 @@ impl Parser {
         self.factor()
     }
 
+    fn term(&mut self) -> Expr {
+        let mut expr = self.factor();
+        while self.match_types(&[TokenType::Plus, TokenType::Minus]){
+            let operator = self.previous();
+            let right = self.factor();
+            expr = Expr::Binary { left: Box::new(expr), operator, right: Box::new(right) };
+        }
+        expr
+
+    }
 
     fn factor(&mut self) -> Expr {
         let mut expr = self.primary();
