@@ -1,107 +1,233 @@
-# PokerScript
- Members: *Samaniego, PL & Medalla, EL*
+# [Language name]
+
+## Creators
+
+- Erine Lourdes L. Medalla (e-rine)
+- Percie Louise Y. Samaniego (perky-boo25)
 
 ## Overview
 
-PokerScript is a beginner-friendly, general-purpose programming language designed to make programming feel like a strategic game of poker. It introduces a card-based vocabulary where programming concepts are represented through familiar gambling terms, such as `call`, `deal`, `raise`, `fold`, `bust`, and `flush`. Variables and data are handled as cards, while control flow and program execution are expressed through actions commonly associated with gameplay.
+[One paragraph: what the language is for, who would use it, what writing it
+feels like.]
 
-Despite its gambling-inspired theme, the language emphasizes strategy and calculated decision-making rather than chance, reflecting how programmers build logic and determine outcomes through their choices. Its goal is to provide a playful yet understandable programming experience while maintaining core programming concepts and functionality.
+## Host language and build
 
-## Language Profile
+- Host language: Rust
+- Version metadata: 1.98.0
+- Build: `./build.sh`
+- [Anything a fresh clone needs to know.]
 
-| Property | Value |
+## Running it
+
+
+| Command | What it does |
 |---|---|
-| Name | PokerScript |
-| File Extension | `.pkr` |
+| `./run <file>` | [Executes a program. Available from Lab 4.] |
+| `./run --tokenize <file>` | [Prints the token stream.] |
+| `./run --parse <file>` | [Prints the parsed tree.] |
+| `./run --eval <file>` | [Evaluates each expression and prints its value.] |
+| `./run` | [Starts the REPL.] |
 
-## Token List
 
-### Recognition Rules
+Exit codes: 0 [when], 65 [when], 70 [when].
 
-| First Character | Continue While | Token Type |
-|---|---|---|
-| Letter or `~` | Letter, digit, or `~` | `IDENTIFIER` |
-| Digit | Digit | `NUMBER` |
-| `"` | Until next `"` | `STRING` |
-| `(` | No continuation | `LEFT_PAREN` |
-| `)` | No continuation | `RIGHT_PAREN` |
-| `{` | No continuation | `LEFT_BRACE` |
-| `}` | No continuation | `RIGHT_BRACE` |
-| `;` | No continuation | `SEMICOLON` |
-| `<` | Take a following `=` when present | `LESS_EQUAL` for `<=`, otherwise `LESS` |
-| `>` | Take a following `=` when present | `GREATER_EQUAL` for `>=`, otherwise `GREATER` |
-| `+` | No continuation | `PLUS` |
-| `-` | No continuation | `MINUS` |
-| `/` | No continuation | `DIVIDE` |
-| `=` | Take a following `=` when present | `EQUAL` for `==`, otherwise `ASSIGN` |
-| `*` | No continuation | `MULTIPLY` |
-| `,` | No continuation | `COMMA` |
+## File extension
+
+`[.ext]` [Must match the `ext` field in every tests/lab*/manifest.json.]
+
+## Lexical structure
 
 ### Keywords
 
-| Keyword | Description |
+
+| Keyword | Purpose |
 |---|---|
-| `set` | Variable declaration |
-| `deal` | Immutable variable declaration |
-| `call` | Function call |
-| `flush` | Return |
-| `fold` | Break |
-| `bet` | Try |
-| `bust` | Catch / exceptions |
-| `round` | For loop |
-| `show` | Print statement |
-| `bluff` | |
-| `draw` |  |
-| `raise` |  |
+| [word] | [what it does] |
 
 
-## Example: Turning Code into Tokens
+### Operators
 
-**Input:**
+
+| Operator | Category | Operands | Associativity | Precedence |
+|---|---|---|---|---|
+| [op] | [arithmetic, comparison, logical, assignment, other] | [unary or binary] | [left, right, none] | [1 = loosest] |
+
+
+### Literals
+
+
+| Kind | Syntax | Produces |
+|---|---|---|
+| [number] | [e.g. 42, 3.14] | [what runtime value] |
+| [string] | [e.g. "hello", escapes supported] | [what runtime value] |
+| [boolean] | [true, false] | [what runtime value] |
+| [nil] | [spelling] | [what runtime value] |
+
+
+### Identifiers
+
+- Start characters: [which]
+- Continue characters: [which]
+- Case-sensitive: [yes or no]
+- [Reserved patterns, length limits, or other restrictions.]
+
+### Comments
+
+- Line comments: [token]
+- Block comments: [tokens, or "not supported"]
+- Nesting: [supported or not]
+- [Harness note: comment_prefix in tests/lab*/manifest.json is set to the
+  token above.]
+
+## Whitespace and termination
+
+- Whitespace significant: [yes or no, and where]
+- Statement terminator: [e.g. semicolon, newline, none]
+- Block delimiters: [e.g. braces, indentation]
+- Grouping delimiters: [e.g. parentheses]
+
+## Token output format
+
 ```
-set spade = 5
+[one line of real --tokenize output]
 ```
 
-**Scanner output:**
+[What each field means. Frozen as of Lab 1; changes are recorded in the
+changelog.]
+
+## Grammar
+
 ```
-Token(type=SET, lexeme=set, line=1)
-Token(type=IDENTIFIER, lexeme=spade, line=1)
-Token(type=ASSIGN, lexeme==, line=1)
-Token(type=NUMBER, lexeme=5, line=1)
-Token(type=EOF, lexeme=, line=1)
+[Your complete context-free grammar, current as of the latest activity.
+Unambiguous, with precedence and associativity encoded in rule structure.]
 ```
 
-## Error Handling
+## Parse output format
 
-1. When a character isn't recognized, stop with the exit code.
+```
+[one line of real --parse output, e.g. (+ 1.0 (* 2.0 3.0))]
+```
 
-## Lexical Structure
+- Groupings print as: [form]
+- Numbers print as: [form]
 
-- **Case sensitivity:** Identifiers and keywords are case sensitive (`set` is different from `Set`).
-- **Whitespace:** Indentation has no meaning; braces `{}` are used to indicate a block.
-- **Variable declaration:** `set <identifier> = <expression>`. Variable declarations are mutable by default; adding `deal` makes them immutable.
-- **Strings:** Characters enclosed in double quotes (`"`) are treated strictly as string literals.
-- **Comments:** Anything after `!!!` is treated as a comment, until closed (block comment).
+## Semantics
 
-## Estimated Timeline
+### Values and types
 
-### Week 1
-- Token type list (single-character, multi-character, literals, keywords) and prototype
-- **Sept 7:** Progress Report
+[What runtime values exist, and how they are represented in the host
+language.]
 
-### Week 2
-- **Sept 9–13:** Implementation of multi-char ops, strings, numbers, identifiers/keywords, comments, EOF; writing tests for Lab 1
-- **Sept 13:** Book slot
-- **Sept 14:** Set up `tests/lab1/`, write first tests, commit
-- **Sept 15:** Progress Report
+### Value printing
 
-### Week 3
-- **Sept 16–17:** Implement error reporting (stderr, keep scanning, exit codes) and write tests for every required token category
-- **Sept 18–19:** Write rejection tests for 3 failure cases and wire `tests/lab1` into CI workflow; confirm green
-- **Sept 20:** Book slot; run harness locally before pushing
-- **Sept 21:** Finish README (lexical structure, errors, rationale)
-- **Sept 22:** Progress Report
+- Numbers: [e.g. 5 rather than 5.0]
+- Nil: [spelling]
+- Strings: [with or without quotes]
 
-### Week 4
-- **Sept 27:** Confirm green CI on defense commit; book slot
-- **Sept 28–29:** Laboratory Defense
+### Truthiness
+
+[The complete rule. Which values are false in a condition; everything else is
+true.]
+
+### Operator semantics
+
+- Arithmetic: [accepted operand types]
+- `+` on strings: [concatenation, error, or coercion]
+- Mixed types: [what happens]
+- Comparison: [accepted operand types]
+- Equality across types: [false, or an error]
+- Division by zero: [value produced, or runtime error]
+
+### Scope and bindings
+
+- Redeclaration in the same scope: [allowed or an error]
+- Uninitialized variable holds: [value]
+- Shadowing: [behavior]
+- Undefined name: [static error with exit 65, or runtime error with exit 70]
+
+### Control flow and functions
+
+- Logical operators return: [booleans, or the operand]
+- Dangling else binds to: [which if]
+- Closure capture of a loop variable: [per iteration, or shared]
+- Function with no return statement produces: [value]
+- Arity mismatch: [message and exit code]
+
+## Native functions
+
+
+| Name | Arguments | Returns | Notes |
+|---|---|---|---|
+| [name] | [count and types] | [type] | [caveats] |
+
+
+## Errors and diagnostics
+
+Message format:
+
+```
+[one real static error]
+[one real runtime error]
+```
+
+
+| Failure | Exit code |
+|---|---|
+| [lexical error] | 65 |
+| [syntax error] | 65 |
+| [runtime error] | 70 |
+
+
+## Testing conventions
+
+
+| Folder | Activity | Mode | Flag |
+|---|---|---|---|
+| tests/lab1 | Scanner | sidecar | `--tokenize` |
+| tests/lab2 | Parser | sidecar | `--parse` |
+| tests/lab3 | Evaluator | inline | `--eval` |
+| tests/lab4 | Context | inline | none |
+| tests/lab5 | Functions | inline | none |
+
+
+```
+[specific tests]...
+```
+
+Run locally with:
+
+```bash
+curl -sSL https://raw.githubusercontent.com/WhiteLicorice/cmsc-124-harness/v1.1/run_tests.py -o run_tests.py
+./build.sh
+python3 run_tests.py tests/lab1
+```
+
+## Sample code
+
+```
+[a short program]
+```
+
+Output:
+
+```
+[its output]
+```
+
+## Design rationale
+
+[Why the language is the way it is. Cover the choices that surprised you, the
+features you cut, and the decisions you reversed. Specific reasons, not
+approval of your own work.]
+
+## Known limitations
+
+- [What doesn't work, what is unimplemented, where behavior is worse than you
+  would like.]
+
+## Changelog
+
+
+| Activity | What changed in the language |
+|---|---|
+| Lab 1 | [entry] |
