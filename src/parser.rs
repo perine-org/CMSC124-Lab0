@@ -1,6 +1,14 @@
 use crate::ast::Expr;
 use crate::token::{Token, TokenType};
 
+/*
+expression → equality
+equality   → comparison ( "==" comparison )*
+comparison → term ( ( "<" | "<=" | ">" | ">=" ) term )*
+term       → factor ( ( "+" | "-" ) factor )*
+factor     → primary ( ( "*" | "/" ) primary )*
+primary    → NUMBER | STRING | "(" expression ")"
+*/
 pub struct Parser {
     tokens: Vec<Token>,
     current: usize,
@@ -15,6 +23,16 @@ impl Parser {
         self.factor()
     }
 
+    fn term(&mut self) -> Expr {
+        let mut expr = self.factor();
+        while self.match_types(&[TokenType::Plus, TokenType::Minus]){
+            let operator = self.previous();
+            let right = self.factor();
+            expr = Expr::Binary { left: Box::new(expr), operator, right: Box::new(right) };
+        }
+        expr
+
+    }
 
     fn factor(&mut self) -> Expr {
         let mut expr = self.primary();

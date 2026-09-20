@@ -48,6 +48,7 @@ impl Scanner {
             '-' => self.add_token(TokenType::Minus),
             '/' => self.add_token(TokenType::Divide),
             '*' => self.add_token(TokenType::Multiply),
+            '%' => self.add_token(TokenType::Modulo),
             ',' => self.add_token(TokenType::Comma),
             '<' => {
                 if self.peek() == '=' {
@@ -132,6 +133,8 @@ impl Scanner {
             "draw" => TokenType::Draw,
             "raise" => TokenType::Raise,
             "show" => TokenType::Show,
+            "true" => TokenType::True,
+            "false" => TokenType::False,
             "and" => TokenType::And,     
             "or" => TokenType::Or,       
             "not" => TokenType::Not, 

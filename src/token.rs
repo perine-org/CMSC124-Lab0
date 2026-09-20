@@ -12,6 +12,7 @@ pub enum TokenType {
     Minus,
     Divide,
     Multiply,
+    Modulo,
     Comma,
     Less,
     LessEqual,
@@ -42,6 +43,9 @@ pub enum TokenType {
     Raise,
     Show,
 
+    True,
+    False,
+
     Eof,
 }
 
@@ -50,6 +54,7 @@ pub enum TokenType {
 pub enum Literal {
     Number(f64),
     Str(String),
+    Bool(bool),
     None, // keywords, punctuation, operators carry no literal
 }
 
@@ -59,6 +64,7 @@ impl fmt::Display for Literal {
         match self {
             Literal::Number(n) => write!(f, "{}", n),
             Literal::Str(s) => write!(f, "{}", s),
+            Literal::Bool(b) => write!(f, "{}", b),
             Literal::None => write!(f, "null"),
         }
     }
@@ -109,6 +115,7 @@ fn format_type(t: &TokenType) -> &'static str {
         TokenType::Minus => "MINUS",
         TokenType::Divide => "DIVIDE",
         TokenType::Multiply => "MULTIPLY",
+        TokenType::Modulo => "MODULO",
         TokenType::Comma => "COMMA",
         TokenType::Less => "LESS",
         TokenType::LessEqual => "LESS_EQUAL",
@@ -135,6 +142,8 @@ fn format_type(t: &TokenType) -> &'static str {
         TokenType::Draw => "DRAW",
         TokenType::Raise => "RAISE",
         TokenType::Show => "SHOW",
+        TokenType::True => "TRUE",
+TokenType::False => "FALSE",
         TokenType::Eof => "EOF",
     }
 }
