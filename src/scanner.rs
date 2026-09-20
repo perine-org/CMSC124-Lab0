@@ -1,5 +1,6 @@
-use crate::token::{Literal, Token, TokenType};
+use crate::token::{Literal, Token, TokenType}; // imports from the 
 
+// read through the source code
 pub struct Scanner {
     source: Vec<char>,
     tokens: Vec<Token>,
@@ -76,13 +77,20 @@ impl Scanner {
             // maximal munch: check for the longer !!! form before falling back to !
             '!' => {
                 if self.peek() == '!' && self.peek_next() == '!' {
-                    self.advance(); 
-                    self.advance(); 
+                    // !!!  -> block comment
+                    self.advance();
+                    self.advance();
                     self.block_comment();
-                } else {
+                } else if self.peek() == '!' {
+                    // !!   -> line comment
+                    self.advance();
                     while self.peek() != '\n' && !self.is_at_end() {
                         self.advance();
                     }
+                } else if self.peek() == '=' {
+                    // !=   -> not-equal
+                    self.advance();
+                    self.add_token(TokenType::NotEqual);
                 }
             }
 
@@ -124,6 +132,9 @@ impl Scanner {
             "draw" => TokenType::Draw,
             "raise" => TokenType::Raise,
             "show" => TokenType::Show,
+            "and" => TokenType::And,     
+            "or" => TokenType::Or,       
+            "not" => TokenType::Not, 
             _ => TokenType::Identifier,
         };
 
