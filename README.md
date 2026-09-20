@@ -19,15 +19,13 @@ feels like.]
 
 ## Running it
 
-
 | Command | What it does |
-|---|---|
+| --- | --- |
 | `./run <file>` | [Executes a program. Available from Lab 4.] |
 | `./run --tokenize <file>` | [Prints the token stream.] |
 | `./run --parse <file>` | [Prints the parsed tree.] |
 | `./run --eval <file>` | [Evaluates each expression and prints its value.] |
 | `./run` | [Starts the REPL.] |
-
 
 Exit codes: 0 [when], 65 [when], 70 [when].
 
@@ -59,17 +57,29 @@ Exit codes: 0 [when], 65 [when], 70 [when].
 | `or` | Logical OR |
 | `not` | Logical NOT |
 
-
 ### Operators
 
-
 | Operator | Category | Operands | Associativity | Precedence |
-|---|---|---|---|---|
-| [op] | [arithmetic, comparison, logical, assignment, other] | [unary or binary] | [left, right, none] | [1 = loosest] |
+| --- | --- | --- | --- | --- |
+| `+` | arithmetic | binary | left | 4 |
+| `-` | arithmetic | binary | left | 4 |
+| `*` | arithmetic | binary | left | 5 |
+| `/` | arithmetic | binary | left | 5 |
+| `%` | arithmetic | binary | left | 5 |
+| `<` | comparison | binary | left | 3 |
+| `<=` | comparison | binary | left | 3 |
+| `>` | comparison | binary | left | 3 |
+| `>=` | comparison | binary | left | 3 |
+| `==` | comparison | binary | left | 2 |
+| `!=` | comparison | binary | left | 2 |
+| `=` | assignment | binary | right | Not defined |
+| `and` | logical | binary | Not defined | Not defined |
+| `or` | logical | binary | Not defined | Not defined |
+| `not` | logical | unary | Not defined | Not defined |
 
+**Note:** The precedence and associativity for +, -, *, /, %, comparison, and equality operators are based on the grammar implemented in parser.rs. However, =, and, or, and not do not have their precedence or associativity defined in the current grammar.
 
 ### Literals
-
 
 | Kind | Syntax | Produces |
 |---|---|---|
@@ -78,13 +88,16 @@ Exit codes: 0 [when], 65 [when], 70 [when].
 | Booleon | [true, false] | Boolean |
 | [nil] | [spelling] | [what runtime value] |
 
-
 ### Identifiers
 
-- Start characters: [which]
-- Continue characters: [which]
-- Case-sensitive: [yes or no]
-- [Reserved patterns, length limits, or other restrictions.]
+- Start characters: Alphabetic characters (`a-z`, `A-Z`, and other alphabetic Unicode characters) or `~`
+- Continue characters: Alphanumeric characters or `~`
+- Case-sensitive: Yes
+- Reserved words: `set`, `deal`, `call`, `flush`, `fold`, `bet`, `bust`, `round`, `bluff`, `draw`, `raise`, `show`, `true`, `false`, `and`, `or`, `not`
+- No identifier length limit is defined in the Scanner.
+- A word matching one of the reserved words is tokenized as its corresponding keyword rather than as an `IDENTIFIER`.
+- Identifiers may contain letters, numbers, and `~`, but they cannot begin with a number.
+- The language's `IDENTIFIER` token is distinct from its reserved keyword tokens. :contentReference[oaicite:3]{index=3}
 
 ### Comments
 
@@ -95,10 +108,11 @@ Exit codes: 0 [when], 65 [when], 70 [when].
 
 ## Whitespace and termination
 
-- Whitespace significant: [yes or no, and where]
-- Statement terminator: [e.g. semicolon, newline, none]
-- Block delimiters: [e.g. braces, indentation]
-- Grouping delimiters: [e.g. parentheses]
+- Whitespace significant: **No.** Spaces, carriage returns (`\r`), and tabs (`\t`) are ignored by the Scanner. Newlines are also not treated as tokens, but they increment the line counter for error reporting.
+- Statement terminator: **No explicit statement terminator is defined in the Parser grammar.** A semicolon token exists in the Scanner, but the current expression grammar does not use it.
+- Block delimiters: `{` and `}` are recognized as `LEFT_BRACE` and `RIGHT_BRACE`, but they are not currently used by the Parser grammar.
+- Grouping delimiters: `(` and `)`. Parentheses are used to group expressions in the grammar: `"(" expression ")"`.
+- End of input: The Scanner automatically adds an `EOF` token after scanning the entire source.
 
 ## Token output format
 
@@ -169,11 +183,9 @@ true.]
 
 ## Native functions
 
-
 | Name | Arguments | Returns | Notes |
 |---|---|---|---|
 | [name] | [count and types] | [type] | [caveats] |
-
 
 ## Errors and diagnostics
 
@@ -184,25 +196,21 @@ Message format:
 [one real runtime error]
 ```
 
-
 | Failure | Exit code |
-|---|---|
+| --- | --- |
 | [lexical error] | 65 |
 | [syntax error] | 65 |
 | [runtime error] | 70 |
 
-
 ## Testing conventions
 
-
 | Folder | Activity | Mode | Flag |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | tests/lab1 | Scanner | sidecar | `--tokenize` |
 | tests/lab2 | Parser | sidecar | `--parse` |
-| tests/lab3 | Evaluator | inline | `--eval` |
+| tests/lab3 | Evaluator | inline | none |
 | tests/lab4 | Context | inline | none |
 | tests/lab5 | Functions | inline | none |
-
 
 ```
 [specific tests]...
@@ -240,7 +248,6 @@ approval of your own work.]
   would like.]
 
 ## Changelog
-
 
 | Activity | What changed in the language |
 |---|---|
