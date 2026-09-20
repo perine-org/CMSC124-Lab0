@@ -3,11 +3,11 @@ use crate::token::{Token, TokenType};
 
 /*
 expression → equality
-equality   → comparison ( "==" comparison )*
+equality   → comparison ( ( "==" | "!=" ) comparison )*
 comparison → term ( ( "<" | "<=" | ">" | ">=" ) term )*
 term       → factor ( ( "+" | "-" ) factor )*
-factor     → primary ( ( "*" | "/" ) primary )*
-primary    → NUMBER | STRING | "(" expression ")"
+factor     → primary ( ( "*" | "/" | "%" ) primary )*
+primary    → NUMBER | STRING | "true" | "false" | "(" expression ")"
 */
 pub struct Parser {
     tokens: Vec<Token>,
@@ -18,9 +18,17 @@ impl Parser {
     pub fn new(tokens: Vec<Token>) -> Self {
         Parser { tokens, current: 0 }
     }
+    
+    pub fn parse(&mut self) -> Expr {
+        let expr = self.parse_expression();
+        if !self.is_at_end() {
+            self.error(self.peek(), "Expect end of expression.");
+        }
+        expr
+    }
 
     pub fn parse_expression(&mut self) -> Expr {
-        self.factor()
+        self.equality()
     }
 
     fn term(&mut self) -> Expr {
@@ -34,10 +42,33 @@ impl Parser {
 
     }
 
+    fn comparison(&mut self) -> Expr {
+        let mut expr = self.term();
+        while self.match_types(&[
+           TokenType::Greater, TokenType::GreaterEqual,
+           TokenType:: Less, TokenType::LessEqual,
+        ]) {
+            let operator = self.previous();
+            let right = self.term();
+            expr = Expr::Binary {left: Box::new(expr), operator, right: Box::new(right)};
+        }
+        expr
+    }
+
+    fn equality(&mut self) -> Expr {
+        let mut expr = self.comparison();
+        while self.match_types(&[TokenType::Equal, TokenType::NotEqual]) {
+            let operator = self.previous();
+            let right = self.comparison();
+            expr = Expr::Binary { left: Box::new(expr), operator, right: Box::new(right) };
+        }
+        expr
+    }
+
     fn factor(&mut self) -> Expr {
         let mut expr = self.primary();
 
-        while self.match_types(&[TokenType::Divide, TokenType::Multiply]) {
+        while self.match_types(&[TokenType::Divide, TokenType::Multiply, TokenType::Modulo]) {
             let operator = self.previous();
             let right = self.primary();
             expr = Expr::Binary {
@@ -57,6 +88,10 @@ impl Parser {
         }
 
         if self.match_types(&[TokenType::Str]) {
+            return Expr::Literal(self.previous().literal.clone());
+        }
+
+        if self.match_types(&[TokenType::True, TokenType::False]) {
             return Expr::Literal(self.previous().literal.clone());
         }
 
