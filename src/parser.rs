@@ -18,6 +18,14 @@ impl Parser {
     pub fn new(tokens: Vec<Token>) -> Self {
         Parser { tokens, current: 0 }
     }
+    
+    pub fn parse(&mut self) -> Expr {
+        let expr = self.parse_expression();
+        if !self.is_at_end() {
+            self.error(self.peek(), "Expect end of expression.");
+        }
+        expr
+    }
 
     pub fn parse_expression(&mut self) -> Expr {
         self.equality()
