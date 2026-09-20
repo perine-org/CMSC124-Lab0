@@ -20,7 +20,7 @@ impl Parser {
     }
 
     pub fn parse_expression(&mut self) -> Expr {
-        self.factor()
+        self.equality()
     }
 
     fn term(&mut self) -> Expr {
@@ -43,6 +43,16 @@ impl Parser {
             let operator = self.previous();
             let right = self.term();
             expr = Expr::Binary {left: Box::new(expr), operator, right: Box::new(right)};
+        }
+        expr
+    }
+
+    fn equality(&mut self) -> Expr {
+        let mut expr = self.comparison();
+        while self.match_types(&[TokenType::Equal, TokenType::NotEqual]) {
+            let operator = self.previous();
+            let right = self.comparison();
+            expr = Expr::Binary { left: Box::new(expr), operator, right: Box::new(right) };
         }
         expr
     }
