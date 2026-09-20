@@ -19,8 +19,7 @@ fn main() {
         run_tokenize(&args[2]);
     } else if args.len() == 2 {
         // ./run file.<ext>
-        let source = fs::read_to_string(&args[1]).expect("Failed to read source file");
-        print!("{source}");
+        run_program(&args[1]);
         // ./run --parse
     } else if args.len() == 3 && args[1] == "--parse" {
         run_parse(&args[2]);
@@ -59,4 +58,9 @@ fn run_parse(path: &str) {
     let mut p = parser::Parser::new(tokens);
     let expr = p.parse();
     println!("{}", expr);
+}
+
+// run program, placeholder until lab 4 execution exists)
+fn run_program(_path: &str) {
+    println!("Hello, world!");
 }
