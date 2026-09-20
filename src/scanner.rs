@@ -132,6 +132,9 @@ impl Scanner {
             "draw" => TokenType::Draw,
             "raise" => TokenType::Raise,
             "show" => TokenType::Show,
+            "and" => TokenType::And,     
+            "or" => TokenType::Or,       
+            "not" => TokenType::Not, 
             _ => TokenType::Identifier,
         };
 
