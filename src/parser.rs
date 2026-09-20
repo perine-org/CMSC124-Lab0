@@ -1,6 +1,14 @@
 use crate::ast::Expr;
 use crate::token::{Token, TokenType};
 
+/*
+expression → equality
+equality   → comparison ( "==" comparison )*
+comparison → term ( ( "<" | "<=" | ">" | ">=" ) term )*
+term       → factor ( ( "+" | "-" ) factor )*
+factor     → primary ( ( "*" | "/" ) primary )*
+primary    → NUMBER | STRING | "(" expression ")"
+*/
 pub struct Parser {
     tokens: Vec<Token>,
     current: usize,
