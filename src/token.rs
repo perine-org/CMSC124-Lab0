@@ -1,6 +1,7 @@
 use std::fmt;
 
-#[derive(Debug, Clone, PartialEq)]
+
+#[derive(Debug, Clone, PartialEq)] 
 pub enum TokenType {
     LeftParen,
     RightParen,
@@ -18,6 +19,7 @@ pub enum TokenType {
     GreaterEqual,
     Assign,
     Equal,
+    NotEqual,
 
     Number,
     Identifier,
@@ -48,6 +50,7 @@ pub enum Literal {
     None, // keywords, punctuation, operators carry no literal
 }
 
+// 
 impl fmt::Display for Literal {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -61,11 +64,12 @@ impl fmt::Display for Literal {
 #[derive(Debug, Clone)]
 pub struct Token {
     pub token_type: TokenType,
-    pub lexeme: String,
-    pub literal: Literal,
-    pub line: usize,
+    pub lexeme: String, // actual text
+    pub literal: Literal, // actual value (numbers/strings)
+    pub line: usize, 
 }
 
+// constructor
 impl Token {
     pub fn new(token_type: TokenType, lexeme: String, literal: Literal, line: usize) -> Self {
         Token {
@@ -77,6 +81,7 @@ impl Token {
     }
 }
 
+// display formatting for tokens
 impl fmt::Display for Token {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
@@ -108,6 +113,7 @@ fn format_type(t: &TokenType) -> &'static str {
         TokenType::GreaterEqual => "GREATER_EQUAL",
         TokenType::Assign => "ASSIGN",
         TokenType::Equal => "EQUAL",
+        TokenType::NotEqual => "NOT_EQUAL",
         TokenType::Number => "NUMBER",
         TokenType::Identifier => "IDENTIFIER",
         TokenType::Str => "STRING",
