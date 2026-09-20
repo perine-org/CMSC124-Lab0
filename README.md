@@ -31,7 +31,7 @@ Exit codes: 0 [when], 65 [when], 70 [when].
 
 ## File extension
 
-`[.ext]` [Must match the `ext` field in every tests/lab*/manifest.json.]
+`.pkr` 
 
 ## Lexical structure
 
@@ -39,7 +39,23 @@ Exit codes: 0 [when], 65 [when], 70 [when].
 
 | Keyword | Purpose |
 |---|---|
-| [word] | [what it does] |
+| `set` | Variable declaration |
+| `deal` | Immutable variable declaration |
+| `call` | Function call |
+| `flush` | Return |
+| `fold` | Break |
+| `bet` | Try |
+| `bust` | Catch / exceptions |
+| `round` | For loop |
+| `show` | Print statement |
+| `bluff` | |
+| `draw` | |
+| `raise` | |
+| `true` | Boolean literal (true) |
+| `false` | Boolean literal (false) |
+| `and` | Logical AND |
+| `or` | Logical OR |
+| `not` | Logical NOT |
 
 ### Operators
 
@@ -66,10 +82,10 @@ Exit codes: 0 [when], 65 [when], 70 [when].
 ### Literals
 
 | Kind | Syntax | Produces |
-| --- | --- | --- |
-| [number] | [e.g. 42, 3.14] | [what runtime value] |
-| [string] | [e.g. "hello", escapes supported] | [what runtime value] |
-| [boolean] | [true, false] | [what runtime value] |
+|---|---|---|
+| Number| 42, 3.14 | Number |
+| String | "hello", escapes not supported | String |
+| Booleon | [true, false] | Boolean |
 | [nil] | [spelling] | [what runtime value] |
 
 ### Identifiers
@@ -85,11 +101,10 @@ Exit codes: 0 [when], 65 [when], 70 [when].
 
 ### Comments
 
-- Line comments: [token]
-- Block comments: [tokens, or "not supported"]
+- Line comments: !!
+- Block comments: !!!
 - Nesting: [supported or not]
-- [Harness note: comment_prefix in tests/lab*/manifest.json is set to the
-  token above.]
+- comment_prefix in tests/lab*/manifest.json is set to !!
 
 ## Whitespace and termination
 
@@ -102,11 +117,11 @@ Exit codes: 0 [when], 65 [when], 70 [when].
 ## Token output format
 
 ```
-[one line of real --tokenize output]
+[Token(type=, lexeme=, literal=, line=)]
 ```
 
-[What each field means. Frozen as of Lab 1; changes are recorded in the
-changelog.]
+Fields: token type, lexeme, literal value (or empty), line number.
+
 
 ## Grammar
 
