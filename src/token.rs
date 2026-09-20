@@ -49,6 +49,7 @@ pub enum TokenType {
 pub enum Literal {
     Number(f64),
     Str(String),
+    Bool(bool),
     None, // keywords, punctuation, operators carry no literal
 }
 
@@ -57,6 +58,7 @@ impl fmt::Display for Literal {
         match self {
             Literal::Number(n) => write!(f, "{}", n),
             Literal::Str(s) => write!(f, "{}", s),
+            Literal::Bool(b) => write!(f, "{}", b),
             Literal::None => write!(f, "null"),
         }
     }
