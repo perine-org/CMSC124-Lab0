@@ -83,6 +83,10 @@ impl Parser {
             return Expr::Literal(self.previous().literal.clone());
         }
 
+        if self.match_types(&[TokenType::True, TokenType::False]) {
+            return Expr::Literal(self.previous().literal.clone());
+        }
+
         if self.match_types(&[TokenType::LeftParen]) {
             let expr = self.parse_expression();
             self.consume(TokenType::RightParen, "Expect ')' after expression.");
