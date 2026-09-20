@@ -11,6 +11,7 @@ pub enum TokenType {
     Minus,
     Divide,
     Multiply,
+    Modulo,
     Comma,
     Less,
     LessEqual,
@@ -36,6 +37,9 @@ pub enum TokenType {
     Draw,
     Raise,
     Show,
+
+    True,
+    False,
 
     Eof,
 }
@@ -101,6 +105,7 @@ fn format_type(t: &TokenType) -> &'static str {
         TokenType::Minus => "MINUS",
         TokenType::Divide => "DIVIDE",
         TokenType::Multiply => "MULTIPLY",
+        TokenType::Modulo => "MODULO",
         TokenType::Comma => "COMMA",
         TokenType::Less => "LESS",
         TokenType::LessEqual => "LESS_EQUAL",
@@ -123,6 +128,8 @@ fn format_type(t: &TokenType) -> &'static str {
         TokenType::Draw => "DRAW",
         TokenType::Raise => "RAISE",
         TokenType::Show => "SHOW",
+        TokenType::True => "TRUE",
+TokenType::False => "FALSE",
         TokenType::Eof => "EOF",
     }
 }
