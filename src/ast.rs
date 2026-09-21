@@ -14,6 +14,11 @@ pub enum Expr {
         operator: Token,
         right: Box<Expr>,
     },
+
+    Unary {
+    operator: Token,
+    right: Box<Expr>,
+},
 }
 
 impl fmt::Display for Expr {
@@ -24,6 +29,7 @@ impl fmt::Display for Expr {
             Expr::Binary { left, operator, right } => {
                 write!(f, "({} {} {})", operator.lexeme, left, right)
             }
+            Expr::Unary { operator, right } => write!(f, "({} {})", operator.lexeme, right),
         }
     }
 }
