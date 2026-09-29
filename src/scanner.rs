@@ -1,4 +1,4 @@
-use crate::token::{Literal, Token, TokenType}; // imports from the 
+use crate::token::{Literal, Token, TokenType}; // imports from the token
 
 // read through the source code
 pub struct Scanner {
