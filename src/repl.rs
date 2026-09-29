@@ -1,4 +1,5 @@
 use crate::scanner::Scanner;
+use crate::parser::Parser;
 use std::io::{self, Write};
 
 // lets you run from gitbash
@@ -16,10 +17,14 @@ pub fn run_repl() {
             break;
         }
 
-        let mut s = Scanner::new(line.trim_end());
-        let tokens = s.scan_tokens();
-        for t in tokens {
-            println!("{}", t);
+        let mut s = Scanner::new(&line);
+        // .clone() because scan_tokens() returns a borrowed &Vec<Token>,
+        // but Parser::new() needs to own the tokens
+        let tokens = s.scan_tokens().clone();
+
+        let mut p = Parser::new(tokens);
+        if let Ok(expr) = p.parse() {
+            println!("{}", expr); // silently reprompt on error, parser already logged it
         }
     }
 }

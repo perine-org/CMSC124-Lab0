@@ -6,71 +6,81 @@ expression → equality
 equality   → comparison ( ( "==" | "!=" ) comparison )*
 comparison → term ( ( "<" | "<=" | ">" | ">=" ) term )*
 term       → factor ( ( "+" | "-" ) factor )*
-factor     → primary ( ( "*" | "/" | "%" ) primary )*
+factor     → unary ( ( "*" | "/" | "%" ) unary )*
+unary      → ( "not" | "-" ) unary | primary
 primary    → NUMBER | STRING | "true" | "false" | "(" expression ")"
 */
+
+#[derive(Debug)]
+// empty error type so functions can use '?' to 
+// instantly exit and pass errors up the chain on failure
+pub struct ParseError;
 pub struct Parser {
     tokens: Vec<Token>,
     current: usize,
+    // tracks if any error occurred so the program can still exit with code 65 even if it recovered
+    pub had_error: bool,
 }
 
 impl Parser {
     pub fn new(tokens: Vec<Token>) -> Self {
-        Parser { tokens, current: 0 }
+        Parser { tokens, current: 0 , had_error: false}
     }
     
-    pub fn parse(&mut self) -> Expr {
-        let expr = self.parse_expression();
-        if !self.is_at_end() {
-            self.error(self.peek(), "Expect end of expression.");
+    pub fn parse(&mut self) -> Result<Expr, ParseError> {
+        let expr = self.parse_expression()?;
+        if !self.is_at_end() { 
+            let error_token = self.peek().clone();
+            return Err(self.error(error_token, "Expect end of expression. "));
         }
-        expr
+        Ok(expr)
     }
 
-    pub fn parse_expression(&mut self) -> Expr {
+    pub fn parse_expression(&mut self) -> Result<Expr, ParseError> {
         self.equality()
     }
 
-    fn term(&mut self) -> Expr {
-        let mut expr = self.factor();
+    fn term(&mut self) -> Result<Expr, ParseError> {
+        let mut expr = self.factor()?;
         while self.match_types(&[TokenType::Plus, TokenType::Minus]){
             let operator = self.previous();
-            let right = self.factor();
+            let right = self.factor()?;
             expr = Expr::Binary { left: Box::new(expr), operator, right: Box::new(right) };
         }
-        expr
+        Ok(expr)
 
     }
 
-    fn comparison(&mut self) -> Expr {
-        let mut expr = self.term();
+    fn comparison(&mut self) -> Result<Expr, ParseError> {
+        let mut expr = self.term()?;
         while self.match_types(&[
            TokenType::Greater, TokenType::GreaterEqual,
            TokenType:: Less, TokenType::LessEqual,
         ]) {
             let operator = self.previous();
-            let right = self.term();
+            let right = self.term()?;
             expr = Expr::Binary {left: Box::new(expr), operator, right: Box::new(right)};
         }
-        expr
+        Ok(expr)
     }
 
-    fn equality(&mut self) -> Expr {
-        let mut expr = self.comparison();
+    fn equality(&mut self) ->Result<Expr, ParseError> {
+        let mut expr = self.comparison()?;
         while self.match_types(&[TokenType::Equal, TokenType::NotEqual]) {
             let operator = self.previous();
-            let right = self.comparison();
+            let right = self.comparison()?;
             expr = Expr::Binary { left: Box::new(expr), operator, right: Box::new(right) };
         }
-        expr
+        Ok(expr)
     }
 
-    fn factor(&mut self) -> Expr {
-        let mut expr = self.primary();
+    fn factor(&mut self) -> Result<Expr, ParseError> {
+        // calls unary() to evaluate prefix signs (e.i -5) before multiplying or dividing
+        let mut expr = self.unary()?;
 
         while self.match_types(&[TokenType::Divide, TokenType::Multiply, TokenType::Modulo]) {
             let operator = self.previous();
-            let right = self.primary();
+            let right = self.unary()?;
             expr = Expr::Binary {
                 left: Box::new(expr),
                 operator,
@@ -78,32 +88,43 @@ impl Parser {
             };
         }
 
-        expr
+        Ok(expr)
+    }
+
+    // calls itself recursively to handle prefix signs and allow chained operators like --5 or not not true
+    fn unary(&mut self) -> Result<Expr, ParseError> {
+        if self.match_types(&[TokenType::Not, TokenType::Minus]){
+            let operator = self.previous();
+            let right = self.unary()?;
+            return Ok(Expr::Unary { operator, right: Box::new(right) });
+        }
+
+        self.primary()
     }
 
     // primary 
-    fn primary(&mut self) -> Expr {
+    fn primary(&mut self) -> Result<Expr, ParseError> {
         if self.match_types(&[TokenType::Number]) {
-            return Expr::Literal(self.previous().literal.clone());
+            return Ok(Expr::Literal(self.previous().literal.clone()));
         }
 
         if self.match_types(&[TokenType::Str]) {
-            return Expr::Literal(self.previous().literal.clone());
+            return Ok(Expr::Literal(self.previous().literal.clone()));
         }
 
         if self.match_types(&[TokenType::True, TokenType::False]) {
-            return Expr::Literal(self.previous().literal.clone());
+            return Ok(Expr::Literal(self.previous().literal.clone()));
         }
 
         if self.match_types(&[TokenType::LeftParen]) {
-            let expr = self.parse_expression();
-            self.consume(TokenType::RightParen, "Expect ')' after expression.");
-            return Expr::Grouping {
-                expression: Box::new(expr),
-            };
+            let expr = self.parse_expression()?;
+                        self.consume(TokenType::RightParen, "Expect ')' after expression.")?;
+            return Ok(Expr::Grouping { 
+                expression: Box::new(expr), });
         }
 
-        self.error(self.peek(), "Expect expression.")
+        let peek_token = self.peek().clone();
+        Err(self.error(peek_token, "Expect expression."))
     }
 
     fn peek(&self) -> &Token {
@@ -142,19 +163,42 @@ impl Parser {
         false
     }
 
-    fn consume(&mut self, token_type: TokenType, message: &str) -> Token {
+    fn consume(&mut self, token_type: TokenType, message: &str) -> Result<Token, ParseError> {
         if self.check(&token_type) {
-            return self.advance();
+            return Ok(self.advance());
         }
-        self.error(self.peek(), message)
+        let error_token = self.peek().clone();
+        Err(self.error(error_token, message))
     }
 
-    fn error(&self, token: &Token, message: &str) -> ! {
+    // prints error details to stderr and returns ParseError to let caller code unwind safely instead of crashing
+    fn error(&mut self, token: Token, message: &str) -> ParseError {
+        self.had_error = true;
         if token.token_type == TokenType::Eof {
             eprintln!("[line {}] Error at end: {}", token.line, message);
         } else {
             eprintln!("[line {}] Error at '{}': {}", token.line, token.lexeme, message);
         }
-        std::process::exit(65);
+        ParseError
+    }
+
+    // TODO: Call this from the multi-expression parse loop after catching ParseError for error recovery; not wired up yet.
+    /// Skips broken tokens until reaching a token that can start a new expression.
+    pub fn synchronize(&mut self) {
+        self.advance();
+        while !self.is_at_end() {
+            match self.peek().token_type {
+                TokenType::Number
+                | TokenType::Str
+                | TokenType::True
+                | TokenType::False
+                | TokenType::LeftParen
+                | TokenType::Not
+                | TokenType::Minus => return,
+                _ => {
+                    self.advance();
+                }
+            }
+        }
     }
 }
