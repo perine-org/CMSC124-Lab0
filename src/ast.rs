@@ -14,11 +14,16 @@ pub enum Expr {
         operator: Token,
         right: Box<Expr>,
     },
-
+    
+    /*
+    Unary: Needed for "not x" and "-x". Before, 
+    factor() just called primary() so there was no node
+    type for these even though scanner already makes not/minus tokens
+     */
     Unary {
-    operator: Token,
-    right: Box<Expr>,
-},
+        operator: Token,
+        right: Box<Expr>,
+    }
 }
 
 impl fmt::Display for Expr {
@@ -29,7 +34,13 @@ impl fmt::Display for Expr {
             Expr::Binary { left, operator, right } => {
                 write!(f, "({} {} {})", operator.lexeme, left, right)
             }
-            Expr::Unary { operator, right } => write!(f, "({} {})", operator.lexeme, right),
+            /*
+            Same prefix with Binary but only one operand.
+            This keeps the printer's output consistene e.i (not true) or (-2.0)
+             */
+            Expr::Unary { operator, right } => {
+                write!(f, "({} {})", operator.lexeme, right)
+            }
         }
     }
 }
