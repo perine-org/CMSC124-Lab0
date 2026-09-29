@@ -7,8 +7,9 @@
 
 ## Overview
 
-[One paragraph: what the language is for, who would use it, what writing it
-feels like.]
+**PokerScript** is a beginner-friendly, general-purpose programming language that turns basic programming concepts into poker terms. Variables are **dealt and set**, functions are **called**, returns **flush**, loops **go round**, and errors **bust**.
+It is designed for beginners who may find familiar, playful terms easier to understand than traditional keywords like `var`, `return`, or `for`. Instead of feeling like memorizing syntax, writing PokerScript feels more like **narrating a hand of poker**.
+Despite the poker theme, the language focuses on **deterministic logic and decision-making, not chance**.
 
 ## Host language and build
 
@@ -24,10 +25,10 @@ feels like.]
 | `./run <file>` | [Executes a program. Available from Lab 4.] |
 | `./run --tokenize <file>` | [Prints the token stream.] |
 | `./run --parse <file>` | [Prints the parsed tree.] |
-| `./run --eval <file>` | [Evaluates each expression and prints its value.] |
+| `./run --eval <file>` | [Evaluates each expression and prints its value.  **Not yet implemented** — scoped for a later lab. ] |
 | `./run` | [Starts the REPL.] |
 
-Exit codes: 0 [when], 65 [when], 70 [when].
+Exit codes: `0` on success,  `64` for incorrect command usage (wrong flags or number of arguments) . `65` when input is invalid (lexical or any syntax error)
 
 ## File extension
 
@@ -48,9 +49,6 @@ Exit codes: 0 [when], 65 [when], 70 [when].
 | `bust` | Catch / exceptions |
 | `round` | For loop |
 | `show` | Print statement |
-| `bluff` | |
-| `draw` | |
-| `raise` | |
 | `true` | Boolean literal (true) |
 | `false` | Boolean literal (false) |
 | `and` | Logical AND |
@@ -126,8 +124,12 @@ Fields: token type, lexeme, literal value (or empty), line number.
 ## Grammar
 
 ```
-[Your complete context-free grammar, current as of the latest activity.
-Unambiguous, with precedence and associativity encoded in rule structure.]
+expression → equality
+equality   → comparison ( ( "==" | "!=" ) comparison )*
+comparison → term ( ( "<" | "<=" | ">" | ">=" ) term )*
+term       → factor ( ( "+" | "-" ) factor )*
+factor     → primary ( ( "*" | "/" | "%" ) primary )*
+primary    → NUMBER | STRING | "true" | "false" | "(" expression ")"
 ```
 
 ## Parse output format
@@ -198,9 +200,9 @@ Message format:
 
 | Failure | Exit code |
 | --- | --- |
-| [lexical error] | 65 |
-| [syntax error] | 65 |
-| [runtime error] | 70 |
+| lexical error | 65 |
+| syntax error | 65 |
+|Incorrect command usage|64|
 
 ## Testing conventions
 
@@ -227,28 +229,43 @@ python3 run_tests.py tests/lab1
 ## Sample code
 
 ```
-[a short program]
+set spade = 5
+show spade
 ```
 
 Output:
-
+Output (`./run --tokenize`):
 ```
-[its output]
+Token(type=SET, lexeme=set, literal=null, line=1)
+Token(type=IDENTIFIER, lexeme=spade, literal=null, line=1)
+Token(type=ASSIGN, lexeme==, literal=null, line=1)
+Token(type=NUMBER, lexeme=5, literal=5, line=1)
+Token(type=SHOW, lexeme=show, literal=null, line=2)
+Token(type=IDENTIFIER, lexeme=spade, literal=null, line=2)
+Token(type=EOF, lexeme=, literal=null, line=2)
 ```
 
 ## Design rationale
 
-[Why the language is the way it is. Cover the choices that surprised you, the
-features you cut, and the decisions you reversed. Specific reasons, not
-approval of your own work.]
+- **Poker vocabulary over generic keywords:** Uses poker terms like `deal`, `fold`, `bust`, and `round` so the code feels like a poker game.
+
+- **`!!!` for block comments instead of `/* */`:** Avoids conflict with `/` for division and keeps comments easy to recognize.
+
+- **Errors accumulate instead of stopping the Scanner:** The Scanner continues after an error so it can report multiple errors at once.
+
+- **Non-nestable block comments:** The first `!!!` closes the comment, keeping the Scanner simple.
+
+- **`~` allowed in identifiers:** Adds a small stylistic feature to make PokerScript names more unique.
 
 ## Known limitations
 
-- [What doesn't work, what is unimplemented, where behavior is worse than you
-  would like.]
+- `./run <file>` and `./run --eval` are not implemented yet, so programs cannot be executed or evaluated.
+- `--parse` only supports a single expression. Statements like `set`, `deal`, `call`, `flush`, `fold`, `bet`, `bust`, `round`, and `show` are not parsed yet.
+- Assignment (`=`) and logical operators (`and`, `or`, `not`) are recognized but cannot be parsed yet.
+- Block comments cannot be nested.
 
 ## Changelog
 
 | Activity | What changed in the language |
 |---|---|
-| Lab 1 | [entry] |
+| Lab 1 | Implemented the Scanner: operators, strings, numbers, identifiers and keywords, `!!`/`!!!` comments, line tracking, `--tokenize` mode, and error reporting with exit code 65. |
