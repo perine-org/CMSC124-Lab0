@@ -16,7 +16,7 @@ pub fn run_repl() {
             break;
         }
 
-        let mut s = Scanner::new(&line);
+        let mut s = Scanner::new(line.trim_end());
         let tokens = s.scan_tokens();
         for t in tokens {
             println!("{}", t);
