@@ -55,10 +55,16 @@ fn run_parse(path: &str) {
         std::process::exit(65);
     }
 
+    /* parse() returns Result instead of exiting from inside the parser
+       in ref to parser.rs - this is the one place that turns a parse failure
+     into the run contract's "nothing on stdout, exit 65". */
     let mut p = parser::Parser::new(tokens);
-    let expr = p.parse();
-    println!("{}", expr);
+    match p.parse() {
+        Ok(expr) => println!("{}", expr),
+        Err(_) => std::process::exit(65),
+    }
 }
+
 
 // run program, placeholder until lab 4 execution exists)
 fn run_program(_path: &str) {
