@@ -29,9 +29,9 @@ impl Parser {
         Parser { tokens, current: 0, had_error: false }
     }
 
-    /// Parses a whole file: a sequence of `expression ";"`. On a syntax error we
+    /// Parses a whole file: a sequence of `expression ";"`.
     /// synchronize to the next ';' and continue, so one bad expression doesn't
-    /// lose the rest of the file. Returns the trees and whether any error occurred.
+    /// lose the rest of the file. 
     pub fn parse_program(&mut self) -> (Vec<Expr>, bool) {
         let mut exprs = Vec::new();
         while !self.is_at_end() {
@@ -115,6 +115,7 @@ impl Parser {
         self.primary()
     }
 
+    // primary
     fn primary(&mut self) -> Result<Expr, ParseError> {
         if self.match_types(&[TokenType::Number]) {
             return Ok(Expr::Literal(self.previous().literal.clone()));
@@ -131,7 +132,8 @@ impl Parser {
         if self.match_types(&[TokenType::LeftParen]) {
             let expr = self.parse_expression()?;
             self.consume(TokenType::RightParen, "Expect ')' after expression.")?;
-            return Ok(Expr::Grouping { expression: Box::new(expr) });
+            return Ok(Expr::Grouping { 
+                expression: Box::new(expr) });
         }
 
         let peek_token = self.peek().clone();
@@ -192,6 +194,9 @@ impl Parser {
         }
         ParseError
     }
+
+    // TODO: Call this from the multi-expression parse loop after catching ParseError for error recovery; not wired up yet.
+    /// Skips broken tokens until reaching a token that can start a new expression.
 
     /// Error recovery: discards tokens up to and including the next ';', so
     /// parsing resumes at the start of the next expression. It always consumes
