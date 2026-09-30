@@ -1,0 +1,9 @@
+123.0
+3.14
+0.5
+hello
+a b c
+true
+false
+(+ a b)
+(== a a)
