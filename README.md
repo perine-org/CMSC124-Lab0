@@ -124,11 +124,13 @@ Fields: token type, lexeme, literal value (or empty), line number.
 ## Grammar
 
 ```
+program    → ( expression ";" )* EOF
 expression → equality
 equality   → comparison ( ( "==" | "!=" ) comparison )*
 comparison → term ( ( "<" | "<=" | ">" | ">=" ) term )*
 term       → factor ( ( "+" | "-" ) factor )*
-factor     → primary ( ( "*" | "/" | "%" ) primary )*
+factor     → unary ( ( "*" | "/" | "%" ) unary )*
+unary      → ( "not" | "-" ) unary | primary
 primary    → NUMBER | STRING | "true" | "false" | "(" expression ")"
 ```
 
@@ -224,9 +226,10 @@ Run locally with:
 curl -sSL https://raw.githubusercontent.com/WhiteLicorice/cmsc-124-harness/v1.1/run_tests.py -o run_tests.py
 ./build.sh
 python3 run_tests.py tests/lab1
+python3 run_tests.py tests/lab2
 ```
 
-## Sample code
+## Scanner Example
 
 ```
 set spade = 5
@@ -245,6 +248,28 @@ Token(type=IDENTIFIER, lexeme=spade, literal=null, line=2)
 Token(type=EOF, lexeme=, literal=null, line=2)
 ```
 
+## Parser Example
+
+Input:
+
+```text
+2 + 3 * 4;
+(2 + 3) * 4;
+1 - 2 - 3;
+-(4 + 5);
+```
+
+Output:
+
+```text
+(+ 2.0 (* 3.0 4.0))
+(* (group (+ 2.0 3.0)) 4.0)
+(- (- 1.0 2.0) 3.0)
+(- (group (+ 4.0 5.0)))
+```
+
+These outputs show that multiplication happens before addition, parentheses change the grouping, subtraction is left-associative, and unary `-` can be applied to a group.
+
 ## Design rationale
 
 - **Poker vocabulary over generic keywords:** Uses poker terms like `deal`, `fold`, `bust`, and `round` so the code feels like a poker game.
@@ -256,6 +281,17 @@ Token(type=EOF, lexeme=, literal=null, line=2)
 - **Non-nestable block comments:** The first `!!!` closes the comment, keeping the Scanner simple.
 
 - **`~` allowed in identifiers:** Adds a small stylistic feature to make PokerScript names more unique.
+
+- **Poker terms:** We use poker-related words to make the language more fun and easier to remember.
+
+- **`;` for expressions:** Each expression ends with `;`, which also gives the Parser a clear point to continue from after an error.
+
+- **Prefix parse output:** The operator comes first so the structure of an expression is easy to see.
+
+- **`not` and `-`:** Both are handled by the same unary rule, including repeated operators like `not not true`.
+- **Rust enum for the AST:** We use one `Expr` enum for `Literal`, `Grouping`, `Binary`, and `Unary` nodes.
+
+- **Error recovery:** When parsing fails, the Parser skips to the next `;` and continues instead of stopping immediately.
 
 ## Known limitations
 
@@ -269,3 +305,4 @@ Token(type=EOF, lexeme=, literal=null, line=2)
 | Activity | What changed in the language |
 |---|---|
 | Lab 1 | Implemented the Scanner: operators, strings, numbers, identifiers and keywords, `!!`/`!!!` comments, line tracking, `--tokenize` mode, and error reporting with exit code 65. |
+| Lab 2 | Added the Parser, AST, grammar, expression parsing, error recovery, `--parse`, and REPL parsing. |
