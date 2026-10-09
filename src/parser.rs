@@ -2,6 +2,7 @@ use crate::ast::Expr;
 use crate::token::{Token, TokenType};
 
 /*
+program    → ( expression ";" )* EOF
 expression → equality
 equality   → comparison ( ( "==" | "!=" ) comparison )*
 comparison → term ( ( "<" | "<=" | ">" | ">=" ) term )*
@@ -12,9 +13,10 @@ primary    → NUMBER | STRING | "true" | "false" | "(" expression ")"
 */
 
 #[derive(Debug)]
-// empty error type so functions can use '?' to 
+// empty error type so functions can use '?' to
 // instantly exit and pass errors up the chain on failure
 pub struct ParseError;
+
 pub struct Parser {
     tokens: Vec<Token>,
     current: usize,
@@ -24,15 +26,27 @@ pub struct Parser {
 
 impl Parser {
     pub fn new(tokens: Vec<Token>) -> Self {
-        Parser { tokens, current: 0 , had_error: false}
+        Parser { tokens, current: 0, had_error: false }
     }
-    
-    pub fn parse(&mut self) -> Result<Expr, ParseError> {
-        let expr = self.parse_expression()?;
-        if !self.is_at_end() { 
-            let error_token = self.peek().clone();
-            return Err(self.error(error_token, "Expect end of expression. "));
+
+    /// Parses a whole file: a sequence of `expression ";"`.
+    /// synchronize to the next ';' and continue, so one bad expression doesn't
+    /// lose the rest of the file. 
+    pub fn parse_program(&mut self) -> (Vec<Expr>, bool) {
+        let mut exprs = Vec::new();
+        while !self.is_at_end() {
+            match self.expression_statement() {
+                Ok(e) => exprs.push(e),
+                Err(_) => self.synchronize(),
+            }
         }
+        (exprs, self.had_error)
+    }
+
+    // expression ";"
+    fn expression_statement(&mut self) -> Result<Expr, ParseError> {
+        let expr = self.parse_expression()?;
+        self.consume(TokenType::Semicolon, "Expect ';' after expression.")?;
         Ok(expr)
     }
 
@@ -40,31 +54,7 @@ impl Parser {
         self.equality()
     }
 
-    fn term(&mut self) -> Result<Expr, ParseError> {
-        let mut expr = self.factor()?;
-        while self.match_types(&[TokenType::Plus, TokenType::Minus]){
-            let operator = self.previous();
-            let right = self.factor()?;
-            expr = Expr::Binary { left: Box::new(expr), operator, right: Box::new(right) };
-        }
-        Ok(expr)
-
-    }
-
-    fn comparison(&mut self) -> Result<Expr, ParseError> {
-        let mut expr = self.term()?;
-        while self.match_types(&[
-           TokenType::Greater, TokenType::GreaterEqual,
-           TokenType:: Less, TokenType::LessEqual,
-        ]) {
-            let operator = self.previous();
-            let right = self.term()?;
-            expr = Expr::Binary {left: Box::new(expr), operator, right: Box::new(right)};
-        }
-        Ok(expr)
-    }
-
-    fn equality(&mut self) ->Result<Expr, ParseError> {
+    fn equality(&mut self) -> Result<Expr, ParseError> {
         let mut expr = self.comparison()?;
         while self.match_types(&[TokenType::Equal, TokenType::NotEqual]) {
             let operator = self.previous();
@@ -74,8 +64,31 @@ impl Parser {
         Ok(expr)
     }
 
+    fn comparison(&mut self) -> Result<Expr, ParseError> {
+        let mut expr = self.term()?;
+        while self.match_types(&[
+            TokenType::Greater, TokenType::GreaterEqual,
+            TokenType::Less, TokenType::LessEqual,
+        ]) {
+            let operator = self.previous();
+            let right = self.term()?;
+            expr = Expr::Binary { left: Box::new(expr), operator, right: Box::new(right) };
+        }
+        Ok(expr)
+    }
+
+    fn term(&mut self) -> Result<Expr, ParseError> {
+        let mut expr = self.factor()?;
+        while self.match_types(&[TokenType::Plus, TokenType::Minus]) {
+            let operator = self.previous();
+            let right = self.factor()?;
+            expr = Expr::Binary { left: Box::new(expr), operator, right: Box::new(right) };
+        }
+        Ok(expr)
+    }
+
     fn factor(&mut self) -> Result<Expr, ParseError> {
-        // calls unary() to evaluate prefix signs (e.i -5) before multiplying or dividing
+        // calls unary() to evaluate prefix signs (e.g. -5) before multiplying or dividing
         let mut expr = self.unary()?;
 
         while self.match_types(&[TokenType::Divide, TokenType::Multiply, TokenType::Modulo]) {
@@ -93,7 +106,7 @@ impl Parser {
 
     // calls itself recursively to handle prefix signs and allow chained operators like --5 or not not true
     fn unary(&mut self) -> Result<Expr, ParseError> {
-        if self.match_types(&[TokenType::Not, TokenType::Minus]){
+        if self.match_types(&[TokenType::Not, TokenType::Minus]) {
             let operator = self.previous();
             let right = self.unary()?;
             return Ok(Expr::Unary { operator, right: Box::new(right) });
@@ -102,7 +115,7 @@ impl Parser {
         self.primary()
     }
 
-    // primary 
+    // primary
     fn primary(&mut self) -> Result<Expr, ParseError> {
         if self.match_types(&[TokenType::Number]) {
             return Ok(Expr::Literal(self.previous().literal.clone()));
@@ -118,9 +131,9 @@ impl Parser {
 
         if self.match_types(&[TokenType::LeftParen]) {
             let expr = self.parse_expression()?;
-                        self.consume(TokenType::RightParen, "Expect ')' after expression.")?;
+            self.consume(TokenType::RightParen, "Expect ')' after expression.")?;
             return Ok(Expr::Grouping { 
-                expression: Box::new(expr), });
+                expression: Box::new(expr) });
         }
 
         let peek_token = self.peek().clone();
@@ -184,21 +197,17 @@ impl Parser {
 
     // TODO: Call this from the multi-expression parse loop after catching ParseError for error recovery; not wired up yet.
     /// Skips broken tokens until reaching a token that can start a new expression.
-    pub fn synchronize(&mut self) {
-        self.advance();
+
+    /// Error recovery: discards tokens up to and including the next ';', so
+    /// parsing resumes at the start of the next expression. It always consumes
+    /// at least one token unless already at Eof, so it can't loop forever.
+    fn synchronize(&mut self) {
         while !self.is_at_end() {
-            match self.peek().token_type {
-                TokenType::Number
-                | TokenType::Str
-                | TokenType::True
-                | TokenType::False
-                | TokenType::LeftParen
-                | TokenType::Not
-                | TokenType::Minus => return,
-                _ => {
-                    self.advance();
-                }
+            if self.peek().token_type == TokenType::Semicolon {
+                self.advance();
+                return;
             }
+            self.advance();
         }
     }
 }
