@@ -29,6 +29,7 @@ pub enum Expr {
 impl fmt::Display for Expr {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Expr::Literal(Literal::Number(n)) => write!(f, "{:?}", n),
             Expr::Literal(lit) => write!(f, "{}", lit),
             Expr::Grouping { expression } => write!(f, "(group {})", expression),
             Expr::Binary { left, operator, right } => {
