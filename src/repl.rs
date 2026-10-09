@@ -22,9 +22,15 @@ pub fn run_repl() {
         // but Parser::new() needs to own the tokens
         let tokens = s.scan_tokens().clone();
 
+        if s.had_error {
+            continue;
+        }
+
+        // syntax errors are printed to stderr by the parser
         let mut p = Parser::new(tokens);
-        if let Ok(expr) = p.parse() {
-            println!("{}", expr); // silently reprompt on error, parser already logged it
+        let (exprs, _had_error) = p.parse_program();
+        for e in exprs {
+            println!("{}", e);
         }
     }
 }
