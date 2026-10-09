@@ -29,15 +29,15 @@ pub enum Expr {
 impl fmt::Display for Expr {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Expr::Literal(lit) => write!(f, "{}", lit),
+            Expr::Literal(lit) => match lit {
+                // AST printer always shows a decimal point: 1 -> 1.0, 3.14 -> 3.14
+                Literal::Number(n) if n.fract() == 0.0 => write!(f, "{:.1}", n),
+                other => write!(f, "{}", other),
+            },
             Expr::Grouping { expression } => write!(f, "(group {})", expression),
             Expr::Binary { left, operator, right } => {
                 write!(f, "({} {} {})", operator.lexeme, left, right)
             }
-            /*
-            Same prefix with Binary but only one operand.
-            This keeps the printer's output consistene e.i (not true) or (-2.0)
-             */
             Expr::Unary { operator, right } => {
                 write!(f, "({} {})", operator.lexeme, right)
             }
