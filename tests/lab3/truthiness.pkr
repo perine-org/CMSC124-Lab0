@@ -1,0 +1,5 @@
+not true; !! expect: false
+not false; !! expect: true
+not 0; !! expect: false
+not ""; !! expect: false
+not not true; !! expect: true
