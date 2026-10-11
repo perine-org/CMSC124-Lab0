@@ -1,3 +1,4 @@
+use crate::interpreter;
 use crate::scanner::Scanner;
 use crate::parser::Parser;
 use std::io::{self, Write};
@@ -28,9 +29,22 @@ pub fn run_repl() {
 
         // syntax errors are printed to stderr by the parser
         let mut p = Parser::new(tokens);
-        let (exprs, _had_error) = p.parse_program();
+        let (exprs, had_error) = p.parse_program();
+
+        //  parser rejected, not evaluated
+        if had_error {
+            continue;
+        }
+
         for e in exprs {
-            println!("{}", e);
+            match interpreter::eval(&e) {
+                Ok(v) => println!("{}", v),
+                Err(err) => {
+                    // runtime error, report on stderr
+                    err.report();
+                    break;
+                }
+            }
         }
     }
 }
