@@ -1,0 +1,5 @@
+67; !! expect: 67
+3.14; !! expect: 3.14
+"sixseven"; !! expect: sixseven
+true; !! expect: true
+false; !! expect: false

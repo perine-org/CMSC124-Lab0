@@ -25,6 +25,9 @@ fn main() {
         // ./run --parse
     } else if args.len() == 3 && args[1] == "--parse" {
         run_parse(&args[2]);
+        // ./run --eval
+    } else if args.len() == 3 && args[1] == "--eval" {
+        run_eval(&args[2]);
     } else {
         eprintln!("Usage: {} [--tokenize <path>] | <path>", args[0]);
         std::process::exit(64);
@@ -67,6 +70,34 @@ fn run_parse(path: &str) {
     }
     for e in exprs {
         println!("{}", e);
+    }
+}
+
+
+// run eval: parse everything first so static errors happen before any output
+fn run_eval(path: &str) {
+    let source = fs::read_to_string(path).expect("Failed to read source file"); // Week 3: replace the .expect
+
+    let mut s = Scanner::new(&source);
+    let tokens = s.scan_tokens().clone();
+    if s.had_error {
+        std::process::exit(65);
+    }
+
+    let mut p = parser::Parser::new(tokens);
+    let (exprs, had_error) = p.parse_program();
+    if had_error {
+        std::process::exit(65);
+    }
+
+    for e in exprs {
+        match interpreter::eval(&e) {
+            Ok(v) => println!("{}", v),
+            Err(err) => {
+                err.report();            // stderr
+                std::process::exit(70);  // runtime error
+            }
+        }
     }
 }
 
