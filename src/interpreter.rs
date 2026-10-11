@@ -17,7 +17,7 @@ impl RuntimeError {
 
     // sending errors to stderr so normal output stays clean.
     pub fn report(&self) {
-        eprintln!("[line {}] Runtime error: {}", self.token.line, self.message);
+        eprintln!("[line {}] Poker error: {}", self.token.line, self.message);
     }
 }
 
@@ -72,7 +72,7 @@ fn binary(operator: &Token, left: Value, right: Value) -> Result<Value, RuntimeE
             let (a, b) = nums(operator, &left, &right)?;
             // check zero first so it can return its own error
             if b == 0.0 {
-                return Err(RuntimeError::new(operator, "Poker error: Division by zero."));
+                return Err(RuntimeError::new(operator, "Division by zero."));
             }
             Ok(Value::Number(a / b))
         }
@@ -80,7 +80,7 @@ fn binary(operator: &Token, left: Value, right: Value) -> Result<Value, RuntimeE
             let (a, b) = nums(operator, &left, &right)?;
             // check zero first so `%` gives my runtime error instead of `NaN`
             if b == 0.0 {
-                return Err(RuntimeError::new(operator, "Poker error: Modulo by zero."));
+                return Err(RuntimeError::new(operator, "Modulo by zero."));
             }
             // keep the left operand's sign for the remainder
             Ok(Value::Number(a % b))
@@ -99,14 +99,14 @@ fn binary(operator: &Token, left: Value, right: Value) -> Result<Value, RuntimeE
 fn num(operator: &Token, value: &Value) -> Result<f64, RuntimeError> {
     match value {
         Value::Number(n) => Ok(*n),
-        _ => Err(RuntimeError::new(operator, "Poker error: Operand must be a number.")),
+        _ => Err(RuntimeError::new(operator, "Operand must be a number.")),
     }
 }
 
 fn nums(operator: &Token, left: &Value, right: &Value) -> Result<(f64, f64), RuntimeError> {
     match (left, right) {
         (Value::Number(a), Value::Number(b)) => Ok((*a, *b)),
-        _ => Err(RuntimeError::new(operator, "Poker error: Operands must be numbers.")),
+        _ => Err(RuntimeError::new(operator, "Operands must be numbers.")),
     }
 }
 
