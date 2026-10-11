@@ -3,6 +3,8 @@ mod token;
 mod ast;
 mod parser;
 mod repl;
+mod value;
+mod interpreter;
 
 use scanner::Scanner;
 use std::env;
