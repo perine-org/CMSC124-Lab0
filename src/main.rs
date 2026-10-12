@@ -15,21 +15,30 @@ fn main() {
 
     // ./run
     if args.len() == 1 {
-        repl::run_repl();
+        repl::run_repl(repl::Mode::Eval);
+    } else if args.len() == 2 && args[1] == "--tokenize" {
+        // ./run --tokenize
+        repl::run_repl(repl::Mode::Tokenize);
+    } else if args.len() == 2 && args[1] == "--parse" {
+        // ./run --parse
+        repl::run_repl(repl::Mode::Parse);
+    } else if args.len() == 2 && args[1] == "--eval" {
+        // ./run --eval
+        repl::run_repl(repl::Mode::Eval);
     } else if args.len() == 3 && args[1] == "--tokenize" {
         // ./run --tokenize <path>
         run_tokenize(&args[2]);
+    } else if args.len() == 3 && args[1] == "--parse" {
+        // ./run --parse <path>
+        run_parse(&args[2]);
+    } else if args.len() == 3 && args[1] == "--eval" {
+        // ./run --eval <path>
+        run_eval(&args[2]);
     } else if args.len() == 2 {
         // ./run file.<ext>
         run_program(&args[1]);
-        // ./run --parse
-    } else if args.len() == 3 && args[1] == "--parse" {
-        run_parse(&args[2]);
-        // ./run --eval
-    } else if args.len() == 3 && args[1] == "--eval" {
-        run_eval(&args[2]);
     } else {
-        eprintln!("Usage: {} [--tokenize <path>] | <path>", args[0]);
+        eprintln!("Usage: {} [--tokenize | --parse | --eval] [<path>]", args[0]);
         std::process::exit(64);
     }
 }
