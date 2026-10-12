@@ -3,8 +3,14 @@ use crate::scanner::Scanner;
 use crate::parser::Parser;
 use std::io::{self, Write};
 
-// lets you run from gitbash
-pub fn run_repl() {
+#[derive(Clone, Copy)]
+pub enum Mode {
+    Tokenize,
+    Parse,
+    Eval,
+}
+
+pub fn run_repl(mode: Mode) {
     let stdin = io::stdin();
     loop {
         print!("> ");
@@ -14,36 +20,42 @@ pub fn run_repl() {
         let bytes_read = stdin.read_line(&mut line).expect("Failed to read line");
 
         if bytes_read == 0 {
-            // EOF
             break;
         }
 
         let mut s = Scanner::new(&line);
-        // .clone() because scan_tokens() returns a borrowed &Vec<Token>,
-        // but Parser::new() needs to own the tokens
         let tokens = s.scan_tokens().clone();
+
+        // tokenize mode: show the tokens and stop here
+        if let Mode::Tokenize = mode {
+            for t in &tokens {
+                println!("{}", t);
+            }
+            continue;
+        }
 
         if s.had_error {
             continue;
         }
 
-        // syntax errors are printed to stderr by the parser
         let mut p = Parser::new(tokens);
         let (exprs, had_error) = p.parse_program();
 
-        //  parser rejected, not evaluated
         if had_error {
             continue;
         }
 
         for e in exprs {
-            match interpreter::eval(&e) {
-                Ok(v) => println!("{}", v),
-                Err(err) => {
-                    // runtime error, report on stderr
-                    err.report();
-                    break;
-                }
+            match mode {
+                Mode::Parse => println!("{}", e),
+                Mode::Eval => match interpreter::eval(&e) {
+                    Ok(v) => println!("{}", v),
+                    Err(err) => {
+                        err.report();
+                        break;
+                    }
+                },
+                Mode::Tokenize => unreachable!(),
             }
         }
     }
