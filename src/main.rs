@@ -73,14 +73,17 @@ fn run_parse(path: &str) {
     in ref to parser.rs - this is the one place that turns a parse failure
     into the run contract's "nothing on stdout, exit 65". */
     let mut p = parser::Parser::new(tokens);
-    let (exprs, had_error) = p.parse_program();
+    let (program, had_error) = p.parse_program();
     if had_error {
         std::process::exit(65);
     }
-    for e in exprs {
-        println!("{}", e);
+
+    let out = program.to_string();
+    if !out.is_empty() {
+        println!("{}", out);
     }
 }
+
 
 
 // run eval: parse everything first so static errors happen before any output
@@ -94,12 +97,12 @@ fn run_eval(path: &str) {
     }
 
     let mut p = parser::Parser::new(tokens);
-    let (exprs, had_error) = p.parse_program();
+    let (program, had_error) = p.parse_program();
     if had_error {
         std::process::exit(65);
     }
 
-    for e in exprs {
+    for e in program.expressions {
         match interpreter::eval(&e) {
             Ok(v) => println!("{}", v),
             Err(err) => {

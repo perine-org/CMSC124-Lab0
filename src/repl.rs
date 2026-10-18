@@ -39,24 +39,33 @@ pub fn run_repl(mode: Mode) {
         }
 
         let mut p = Parser::new(tokens);
-        let (exprs, had_error) = p.parse_program();
+        // parse_program now returns one Program root
+        let (program, had_error) = p.parse_program();
 
         if had_error {
             continue;
         }
 
-        for e in exprs {
-            match mode {
-                Mode::Parse => println!("{}", e),
-                Mode::Eval => match interpreter::eval(&e) {
-                    Ok(v) => println!("{}", v),
-                    Err(err) => {
-                        err.report();
-                        break;
-                    }
-                },
-                Mode::Tokenize => unreachable!(),
+        match mode {
+            Mode::Parse => {
+                // prints one line per expression, same format as before
+                let out = program.to_string();
+                if !out.is_empty() {
+                    println!("{}", out);
+                }
             }
+            Mode::Eval => {
+                for e in &program.expressions {
+                    match interpreter::eval(e) {
+                        Ok(v) => println!("{}", v),
+                        Err(err) => {
+                            err.report();
+                            break; // runtime error: stop this line, keep the session alive
+                        }
+                    }
+                }
+            }
+            Mode::Tokenize => unreachable!(),
         }
     }
 }

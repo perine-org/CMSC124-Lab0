@@ -1,6 +1,13 @@
 use crate::token::{Literal, Token};
 use std::fmt;
 
+// root of the tree: one node that owns every expression
+#[derive(Debug, Clone)]
+pub struct Program {
+    pub expressions: Vec<Expr>,
+}
+
+
 #[derive(Debug, Clone)]
 pub enum Expr {
     Literal(Literal),
@@ -25,6 +32,21 @@ pub enum Expr {
         right: Box<Expr>,
     }
 }
+
+
+
+impl fmt::Display for Program {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        for (i, e) in self.expressions.iter().enumerate() {
+            if i > 0 {
+                writeln!(f)?;
+            }
+            write!(f, "{}", e)?;
+        }
+        Ok(())
+    }
+}
+
 
 impl fmt::Display for Expr {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
