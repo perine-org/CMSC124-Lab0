@@ -10,10 +10,12 @@ use scanner::Scanner;
 use std::env;
 use std::fs;
 
+// entry point that decides whether to run the REPL or process a source file
 fn main() {
     let args: Vec<String> = env::args().collect();
     let args: Vec<&str> = args.iter().map(|s| s.as_str()).collect();
 
+    // command-line arguments determine which stage of the interpreter will run
     match args.as_slice() {
         // ./run
         [_] => repl::run_repl(repl::Mode::Eval),
@@ -39,7 +41,7 @@ fn main() {
     }
 }
 
-// run tokenize
+// runs only the scanner and prints the tokens produced from the source file
 fn run_tokenize(path: &str) {
     let source = fs::read_to_string(path).expect("Failed to read source file");
 
@@ -54,7 +56,7 @@ fn run_tokenize(path: &str) {
     }
 }
 
-// run parse
+// scans and parses the file, then prints the resulting AST
 fn run_parse(path: &str) {
     let source = fs::read_to_string(path).expect("Failed to read source file");
 

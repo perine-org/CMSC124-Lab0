@@ -1,6 +1,6 @@
 use std::fmt;
 
-
+// all token types recognized by the scanner and used by the parser
 #[derive(Debug, Clone, PartialEq)] 
 pub enum TokenType {
     LeftParen,
@@ -58,7 +58,7 @@ pub enum Literal {
     None, // keywords, punctuation, operators carry no literal
 }
 
-// 
+
 impl fmt::Display for Literal {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -76,6 +76,7 @@ impl fmt::Display for Literal {
     }
 }
 
+// one token produced by the scanner, including its source location
 #[derive(Debug, Clone)]
 pub struct Token {
     pub token_type: TokenType,
@@ -110,6 +111,7 @@ impl fmt::Display for Token {
     }
 }
 
+// keeps token names consistent when tokens are printed
 fn format_type(t: &TokenType) -> &'static str {
     match t {
         TokenType::LeftParen => "LEFT_PAREN",

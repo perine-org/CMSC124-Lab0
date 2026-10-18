@@ -52,6 +52,7 @@ pub fn eval(expr: &Expr) -> Result<Value, RuntimeError> {
     }
 }
 
+// keeps binary operator handling in one place so type checking stays consistent
 fn binary(operator: &Token, left: Value, right: Value) -> Result<Value, RuntimeError> {
     match operator.token_type {
         TokenType::Plus => match (&left, &right) {
@@ -94,8 +95,8 @@ fn binary(operator: &Token, left: Value, right: Value) -> Result<Value, RuntimeE
 }
 
 // I keep the number checks here so I can reuse the same rule.
- // I check the values after evaluation, not the expression tree.
-
+// I check the values after evaluation, not the expression tree.
+// shared type checks for operators that only accept numbers
 fn num(operator: &Token, value: &Value) -> Result<f64, RuntimeError> {
     match value {
         Value::Number(n) => Ok(*n),
@@ -103,6 +104,7 @@ fn num(operator: &Token, value: &Value) -> Result<f64, RuntimeError> {
     }
 }
 
+// shared type checks for operators that only accept numbers
 fn nums(operator: &Token, left: &Value, right: &Value) -> Result<(f64, f64), RuntimeError> {
     match (left, right) {
         (Value::Number(a), Value::Number(b)) => Ok((*a, *b)),

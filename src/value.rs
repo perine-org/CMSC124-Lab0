@@ -6,6 +6,7 @@ use std::fmt;
 // TODO: we still have no nil literal yet, but i made the spelling indicator here for printing
 pub const NIL: &str = "nil";
 
+// represents the values that expressions can produce during evaluation
 #[derive(Debug, Clone, PartialEq)]
 pub enum Value {
     Number(f64),
@@ -27,6 +28,7 @@ impl Value {
         }
     }
 
+    // defines how each runtime value behaves when used as a boolean
     pub fn is_truthy(&self) -> bool{
         match self {
             Value::Nil => false,          // nil is falsey
@@ -54,6 +56,7 @@ impl fmt::Display for Value{
     }
 }
 
+// keeps number output consistent across the interpreter
 /// Hard coded these cases myself so the output stays consistent.
 fn format_number(n: f64) -> String {
     if n.is_nan() {

@@ -10,6 +10,7 @@ pub struct Scanner {
     pub had_error: bool,
 }
 
+// keeps the scanner position and the tokens collected from the source
 impl Scanner {
     pub fn new(source: &str) -> Self {
         Scanner {
@@ -34,7 +35,7 @@ impl Scanner {
         &self.tokens
     }
 
-    // determines what type of token
+    // reads one character and decides what token or literal starts there
     fn scan_token(&mut self) {
         let c = self.advance();
 
@@ -76,6 +77,7 @@ impl Scanner {
             }
 
             // maximal munch: check for the longer !!! form before falling back to !
+            // checks the longest possible form first so !!! is not split into smaller tokens
             '!' => {
                 if self.peek() == '!' && self.peek_next() == '!' {
                     self.advance();
@@ -112,7 +114,7 @@ impl Scanner {
         }
     }
 
-    // handles words and names
+    // reads the whole word first, then checks if it is a keyword or an identifier
     fn identifier(&mut self) {
         while is_identifier_continue(self.peek()) {
             self.advance();
@@ -147,7 +149,7 @@ impl Scanner {
         }
     }
 
-    // handles numbers, including decimals
+    // reads the complete number before converting its text into an f64
     fn number(&mut self) {
         while self.peek().is_ascii_digit() {
             self.advance();
@@ -165,7 +167,7 @@ impl Scanner {
         self.add_token_with_literal(TokenType::Number, Literal::Number(value));
     }
 
-        // handles string literals
+    // reads everything between the quotes and stores only the string contents as the literal
     fn string(&mut self) {
         while self.peek() != '"' && !self.is_at_end() {
             if self.peek() == '\n' {
@@ -186,7 +188,7 @@ impl Scanner {
         self.add_token_with_literal(TokenType::Str, Literal::Str(value));
     }
 
-    // function for reading block comments
+    // skips everything inside !!! ... !!! without creating tokens
     fn block_comment(&mut self) {
         while !self.is_at_end() {
             if self.peek() == '!' && self.peek_next() == '!' && self.peek_next_next() == '!' {
