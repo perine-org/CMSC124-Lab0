@@ -86,6 +86,29 @@ fn binary(operator: &Token, left: Value, right: Value) -> Result<Value, RuntimeE
             // keep the left operand's sign for the remainder
             Ok(Value::Number(a % b))
         }
+                
+        // equality works on any pair of types; different types are simply not equal
+        // (1 == "1" is false, not an error), so there is no type check here
+        TokenType::Equal => Ok(Value::Bool(left.is_equal(&right))),
+        TokenType::NotEqual => Ok(Value::Bool(!left.is_equal(&right))),
+
+        // ordering only makes sense for numbers, so non-number operands are errors
+        TokenType::Less => {
+            let (a, b) = nums(operator, &left, &right)?;
+            Ok(Value::Bool(a < b))
+        }
+        TokenType::LessEqual => {
+            let (a, b) = nums(operator, &left, &right)?;
+            Ok(Value::Bool(a <= b))
+        }
+        TokenType::Greater => {
+            let (a, b) = nums(operator, &left, &right)?;
+            Ok(Value::Bool(a > b))
+        }
+        TokenType::GreaterEqual => {
+            let (a, b) = nums(operator, &left, &right)?;
+            Ok(Value::Bool(a >= b))
+        }
         // return an error here because these operators are not ready yet
         _ => Err(RuntimeError::new(
             operator,
