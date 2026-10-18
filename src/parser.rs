@@ -1,4 +1,5 @@
 use crate::ast::Expr;
+use crate::ast::Program;
 use crate::token::{Token, TokenType};
 
 /*
@@ -10,6 +11,7 @@ term       → factor ( ( "+" | "-" ) factor )*
 factor     → unary ( ( "*" | "/" | "%" ) unary )*
 unary      → ( "not" | "-" ) unary | primary
 primary    → NUMBER | STRING | "true" | "false" | "(" expression ")"
+ NUMBER | STRING | true | false | ( expression )
 */
 
 #[derive(Debug)]
@@ -32,7 +34,7 @@ impl Parser {
     /// Parses a whole file: a sequence of `expression ";"`.
     /// synchronize to the next ';' and continue, so one bad expression doesn't
     /// lose the rest of the file. 
-    pub fn parse_program(&mut self) -> (Vec<Expr>, bool) {
+    pub fn parse_program(&mut self) -> (Program, bool) {
         let mut exprs = Vec::new();
         while !self.is_at_end() {
             match self.expression_statement() {
@@ -40,7 +42,7 @@ impl Parser {
                 Err(_) => self.synchronize(),
             }
         }
-        (exprs, self.had_error)
+        (Program { expressions: exprs }, self.had_error)
     }
 
     // expression ";"

@@ -12,34 +12,30 @@ use std::fs;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
+    let args: Vec<&str> = args.iter().map(|s| s.as_str()).collect();
 
-    // ./run
-    if args.len() == 1 {
-        repl::run_repl(repl::Mode::Eval);
-    } else if args.len() == 2 && args[1] == "--tokenize" {
-        // ./run --tokenize
-        repl::run_repl(repl::Mode::Tokenize);
-    } else if args.len() == 2 && args[1] == "--parse" {
-        // ./run --parse
-        repl::run_repl(repl::Mode::Parse);
-    } else if args.len() == 2 && args[1] == "--eval" {
-        // ./run --eval
-        repl::run_repl(repl::Mode::Eval);
-    } else if args.len() == 3 && args[1] == "--tokenize" {
-        // ./run --tokenize <path>
-        run_tokenize(&args[2]);
-    } else if args.len() == 3 && args[1] == "--parse" {
-        // ./run --parse <path>
-        run_parse(&args[2]);
-    } else if args.len() == 3 && args[1] == "--eval" {
-        // ./run --eval <path>
-        run_eval(&args[2]);
-    } else if args.len() == 2 {
+    match args.as_slice() {
+        // ./run
+        [_] => repl::run_repl(repl::Mode::Eval),
+
+        // ./run --tokenize | --parse | --eval   (REPL modes)
+        [_, "--tokenize"] => repl::run_repl(repl::Mode::Tokenize),
+        [_, "--parse"] => repl::run_repl(repl::Mode::Parse),
+        [_, "--eval"] => repl::run_repl(repl::Mode::Eval),
+
+        // ./run --tokenize | --parse | --eval <path>   (file modes)
+        [_, "--tokenize", path] => run_tokenize(path),
+        [_, "--parse", path] => run_parse(path),
+        [_, "--eval", path] => run_eval(path),
+
         // ./run file.<ext>
-        run_program(&args[1]);
-    } else {
-        eprintln!("Usage: {} [--tokenize | --parse | --eval] [<path>]", args[0]);
-        std::process::exit(64);
+        [_, path] => run_program(path),
+
+        // anything else
+        _ => {
+            eprintln!("Usage: {} [--tokenize | --parse | --eval] [<path>]", args[0]);
+            std::process::exit(64);
+        }
     }
 }
 
@@ -73,14 +69,17 @@ fn run_parse(path: &str) {
     in ref to parser.rs - this is the one place that turns a parse failure
     into the run contract's "nothing on stdout, exit 65". */
     let mut p = parser::Parser::new(tokens);
-    let (exprs, had_error) = p.parse_program();
+    let (program, had_error) = p.parse_program();
     if had_error {
         std::process::exit(65);
     }
-    for e in exprs {
-        println!("{}", e);
+
+    let out = program.to_string();
+    if !out.is_empty() {
+        println!("{}", out);
     }
 }
+
 
 
 // run eval: parse everything first so static errors happen before any output
@@ -94,12 +93,12 @@ fn run_eval(path: &str) {
     }
 
     let mut p = parser::Parser::new(tokens);
-    let (exprs, had_error) = p.parse_program();
+    let (program, had_error) = p.parse_program();
     if had_error {
         std::process::exit(65);
     }
 
-    for e in exprs {
+    for e in program.expressions {
         match interpreter::eval(&e) {
             Ok(v) => println!("{}", v),
             Err(err) => {
