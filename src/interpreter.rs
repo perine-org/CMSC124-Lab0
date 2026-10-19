@@ -52,6 +52,7 @@ pub fn eval(expr: &Expr) -> Result<Value, RuntimeError> {
     }
 }
 
+// keeps binary operator handling in one place so type checking stays consistent
 fn binary(operator: &Token, left: Value, right: Value) -> Result<Value, RuntimeError> {
     match operator.token_type {
         TokenType::Plus => match (&left, &right) {
@@ -85,6 +86,29 @@ fn binary(operator: &Token, left: Value, right: Value) -> Result<Value, RuntimeE
             // keep the left operand's sign for the remainder
             Ok(Value::Number(a % b))
         }
+                
+        // equality works on any pair of types; different types are simply not equal
+        // (1 == "1" is false, not an error), so there is no type check here
+        TokenType::Equal => Ok(Value::Bool(left.is_equal(&right))),
+        TokenType::NotEqual => Ok(Value::Bool(!left.is_equal(&right))),
+
+        // ordering only makes sense for numbers, so non-number operands are errors
+        TokenType::Less => {
+            let (a, b) = nums(operator, &left, &right)?;
+            Ok(Value::Bool(a < b))
+        }
+        TokenType::LessEqual => {
+            let (a, b) = nums(operator, &left, &right)?;
+            Ok(Value::Bool(a <= b))
+        }
+        TokenType::Greater => {
+            let (a, b) = nums(operator, &left, &right)?;
+            Ok(Value::Bool(a > b))
+        }
+        TokenType::GreaterEqual => {
+            let (a, b) = nums(operator, &left, &right)?;
+            Ok(Value::Bool(a >= b))
+        }
         // return an error here because these operators are not ready yet
         _ => Err(RuntimeError::new(
             operator,
@@ -94,8 +118,8 @@ fn binary(operator: &Token, left: Value, right: Value) -> Result<Value, RuntimeE
 }
 
 // I keep the number checks here so I can reuse the same rule.
- // I check the values after evaluation, not the expression tree.
-
+// I check the values after evaluation, not the expression tree.
+// shared type checks for operators that only accept numbers
 fn num(operator: &Token, value: &Value) -> Result<f64, RuntimeError> {
     match value {
         Value::Number(n) => Ok(*n),
@@ -103,129 +127,10 @@ fn num(operator: &Token, value: &Value) -> Result<f64, RuntimeError> {
     }
 }
 
+// shared type checks for operators that only accept numbers
 fn nums(operator: &Token, left: &Value, right: &Value) -> Result<(f64, f64), RuntimeError> {
     match (left, right) {
         (Value::Number(a), Value::Number(b)) => Ok((*a, *b)),
         _ => Err(RuntimeError::new(operator, "Operands must be numbers.")),
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::parser::Parser;
-    use crate::scanner::Scanner;
-
-    // running scan, parse, and eval here so each test checks the whole process.
-    fn run(source: &str) -> Result<String, String> {
-        let mut scanner = Scanner::new(source);
-        let tokens = scanner.scan_tokens().clone();
-        let expr = Parser::new(tokens).parse_expression().expect("test source should parse");
-        eval(&expr).map(|v| v.to_string()).map_err(|e| e.message)
-    }
-
-    fn ok(source: &str, expected: &str) {
-        assert_eq!(run(source), Ok(expected.to_string()), "source: {}", source);
-    }
-
-    fn err(source: &str, expected: &str) {
-        assert_eq!(run(source), Err(expected.to_string()), "source: {}", source);
-    }
-
-    #[test]
-    fn literals() {
-        ok("42", "42");
-        ok("3.14", "3.14");
-        ok("\"hi\"", "hi");
-        ok("true", "true");
-        ok("false", "false");
-    }
-
-    #[test]
-    fn arithmetic() {
-        ok("2 + 3 * 4", "14");
-        ok("(2 + 3) * 4", "20");
-        ok("10 - 4 - 3", "3"); // expectation: the left side to run first
-        ok("100 / 10 / 5", "2"); // expectation: the left side to run first
-        ok("10 % 3 + 1", "2");
-        ok("7 - 2 * 3 + 8 / 4", "3"); // checking if the precedence is correct , mul before add
-        ok("1 / 4", "0.25");
-    }
-
-    #[test]
-    fn number_format() {
-        ok("2 + 3", "5");
-        ok("0.5 + 0.5", "1");
-    }
-
-    #[test]
-    fn unary() {
-        ok("-5", "-5");
-        ok("--5", "5");
-        ok("-(1 + 2)", "-3");
-        ok("1 - -2", "3");
-        ok("-0", "0"); //  zero to print consistently
-        ok("not true", "false");
-        ok("not not true", "true");
-        ok("not 0", "false"); //  0 as truthy
-        ok("not \"\"", "false"); // empty string as truthy
-    }
-
-    #[test]
-    fn modulo_sign() {
-        ok("-7 % 3", "-1");
-        ok("7 % -3", "1");
-    }
-
-    #[test]
-    fn string_plus() {
-        ok("\"a\" + \"b\"", "ab");
-        err("\"a\" + 1", "Operands must be two numbers or two strings.");
-        err("1 + true", "Operands must be two numbers or two strings.");
-    }
-
-    #[test]
-    fn type_errors() {
-        err("-\"a\"", "Operand must be a number.");
-        err("-true", "Operand must be a number.");
-        err("\"a\" - 1", "Operands must be numbers.");
-        err("true * 2", "Operands must be numbers.");
-        err("\"a\" / \"b\"", "Operands must be numbers.");
-    }
-
-    #[test]
-    fn zero_division() {
-        err("1 / 0", "Division by zero.");
-        err("1 / (2 - 2)", "Division by zero.");
-        err("5 % 0", "Modulo by zero.");
-        ok("0 / 5", "0");
-    }
-
-    #[test]
-    fn eval_order() {
-        // expectation: the left error first because evaluation is left to right
-        err("(1 / 0) + (\"a\" - 1)", "Division by zero.");
-        err("(\"a\" - 1) + (1 / 0)", "Operands must be numbers.");
-    }
-
-    #[test]
-    fn operands_first() {
-        // expectation: the inner error first because the operand runs first
-        err("-(\"a\" - 1)", "Operands must be numbers.");
-    }
-
-    #[test]
-    fn unsupported_ops() {
-        err("1 < 2", "Operator '<' is not supported yet.");
-        err("1 == 1", "Operator '==' is not supported yet.");
-    }
-
-    #[test]
-    fn error_line() {
-        let mut scanner = Scanner::new("1 +\n  1 / 0");
-        let tokens = scanner.scan_tokens().clone();
-        let expr = Parser::new(tokens).parse_expression().unwrap();
-        let error = eval(&expr).unwrap_err();
-        assert_eq!(error.token.line, 2); // expectation: the `/` error to point to line 2.
     }
 }

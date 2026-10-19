@@ -7,7 +7,7 @@ pub struct Program {
     pub expressions: Vec<Expr>,
 }
 
-
+// each variant represents a different kind of expression the parser can build
 #[derive(Debug, Clone)]
 pub enum Expr {
     Literal(Literal),
@@ -16,6 +16,7 @@ pub enum Expr {
         expression: Box<Expr>,
     },
 
+    // keeps both sides and the operator so the interpreter can evaluate the expression later
     Binary {
         left: Box<Expr>,
         operator: Token,
@@ -47,7 +48,7 @@ impl fmt::Display for Program {
     }
 }
 
-
+// keeps AST output in a readable form for parse mode and debugging
 impl fmt::Display for Expr {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {

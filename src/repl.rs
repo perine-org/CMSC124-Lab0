@@ -9,7 +9,7 @@ pub enum Mode {
     Parse,
     Eval,
 }
-
+// handles one input line at a time through scanning, parsing, and evaluation
 pub fn run_repl(mode: Mode) {
     let stdin = io::stdin();
     loop {
@@ -38,6 +38,7 @@ pub fn run_repl(mode: Mode) {
             continue;
         }
 
+        // parsing happens after scanning so the REPL works with the same parser as file mode
         let mut p = Parser::new(tokens);
         // parse_program now returns one Program root
         let (program, had_error) = p.parse_program();
@@ -46,6 +47,7 @@ pub fn run_repl(mode: Mode) {
             continue;
         }
 
+        // the selected mode decides whether to print the AST or evaluate it
         match mode {
             Mode::Parse => {
                 // prints one line per expression, same format as before

@@ -2,18 +2,6 @@ use crate::ast::Expr;
 use crate::ast::Program;
 use crate::token::{Token, TokenType};
 
-/*
-program    → ( expression ";" )* EOF
-expression → equality
-equality   → comparison ( ( "==" | "!=" ) comparison )*
-comparison → term ( ( "<" | "<=" | ">" | ">=" ) term )*
-term       → factor ( ( "+" | "-" ) factor )*
-factor     → unary ( ( "*" | "/" | "%" ) unary )*
-unary      → ( "not" | "-" ) unary | primary
-primary    → NUMBER | STRING | "true" | "false" | "(" expression ")"
- NUMBER | STRING | true | false | ( expression )
-*/
-
 #[derive(Debug)]
 // empty error type so functions can use '?' to
 // instantly exit and pass errors up the chain on failure
@@ -31,6 +19,7 @@ impl Parser {
         Parser { tokens, current: 0, had_error: false }
     }
 
+    // * GRAMMAR RULE: <program> ::= ( <expression> ";" )* EOF
     /// Parses a whole file: a sequence of `expression ";"`.
     /// synchronize to the next ';' and continue, so one bad expression doesn't
     /// lose the rest of the file. 
@@ -45,6 +34,7 @@ impl Parser {
         (Program { expressions: exprs }, self.had_error)
     }
 
+    // *GRAMMAR RULE: <expression> ::= <equality>
     // expression ";"
     fn expression_statement(&mut self) -> Result<Expr, ParseError> {
         let expr = self.parse_expression()?;
@@ -56,6 +46,7 @@ impl Parser {
         self.equality()
     }
 
+    // *GRAMMAR RULE: <equality> ::= <comparison> { ( "==" | "!=" ) <comparison> }
     fn equality(&mut self) -> Result<Expr, ParseError> {
         let mut expr = self.comparison()?;
         while self.match_types(&[TokenType::Equal, TokenType::NotEqual]) {
@@ -66,6 +57,7 @@ impl Parser {
         Ok(expr)
     }
 
+    // *GRAMMAR RULE: <comparison> ::= <term> { ( "<" | "<=" | ">" | ">=" ) <term> }
     fn comparison(&mut self) -> Result<Expr, ParseError> {
         let mut expr = self.term()?;
         while self.match_types(&[
@@ -79,6 +71,7 @@ impl Parser {
         Ok(expr)
     }
 
+    // *GRAMMAR RULE: <term> ::= <factor> { ( "+" | "-" ) <factor> }
     fn term(&mut self) -> Result<Expr, ParseError> {
         let mut expr = self.factor()?;
         while self.match_types(&[TokenType::Plus, TokenType::Minus]) {
@@ -89,6 +82,7 @@ impl Parser {
         Ok(expr)
     }
 
+    // *GRAMMAR RULE: <factor> ::= <unary> { ( "*" | "/" | "%" ) <unary> }
     fn factor(&mut self) -> Result<Expr, ParseError> {
         // calls unary() to evaluate prefix signs (e.g. -5) before multiplying or dividing
         let mut expr = self.unary()?;
@@ -106,6 +100,7 @@ impl Parser {
         Ok(expr)
     }
 
+    // *GRAMMAR RULE: <unary> ::= ( "not" | "-" ) <unary> | <primary>
     // calls itself recursively to handle prefix signs and allow chained operators like --5 or not not true
     fn unary(&mut self) -> Result<Expr, ParseError> {
         if self.match_types(&[TokenType::Not, TokenType::Minus]) {
@@ -117,7 +112,7 @@ impl Parser {
         self.primary()
     }
 
-    // primary
+   // *GRAMMAR RULE: <primary> ::= NUMBER | STRING | "true" | "false" | "(" <expression> ")"
     fn primary(&mut self) -> Result<Expr, ParseError> {
         if self.match_types(&[TokenType::Number]) {
             return Ok(Expr::Literal(self.previous().literal.clone()));
