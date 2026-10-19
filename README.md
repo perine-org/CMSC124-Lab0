@@ -220,7 +220,7 @@ Message format:
 | --- | --- | --- | --- |
 | tests/lab1 | Scanner | sidecar | `--tokenize` |
 | tests/lab2 | Parser | sidecar | `--parse` |
-| tests/lab3 | Evaluator | inline | none |
+| tests/lab3 | Evaluator | inline | `--eval` |
 | tests/lab4 | Context | inline | none |
 | tests/lab5 | Functions | inline | none |
 
