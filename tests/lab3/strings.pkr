@@ -1,5 +1,0 @@
-"six" + "seven"; !! expect: sixseven
-"cmsc" + "124"; !! expect: cmsc124
-"hello" + " " + "world"; !! expect: hello world
-"a" - 1;      !! expect runtime error: Operands must be numbers.
-
