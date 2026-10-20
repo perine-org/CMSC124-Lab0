@@ -147,28 +147,36 @@ primary    → NUMBER | STRING | "true" | "false" | "(" expression ")"
 
 ### Values and types
 
-[What runtime values exist, and how they are represented in the host
-language.]
+A runtime value is a tagged union (`enum Value` in `value.rs`) with four cases:
+ 
+| Case | Host representation | Notes |
+|---|---|---|
+| Number | `f64` | One numeric type. There are no separate integers. |
+| String | `String` | |
+| Boolean | `bool` | |
+| Nil | unit variant | No literal yet. |
+ 
+`Value` is separate from the scanner's `Literal`: a literal is what the source text said, a value is what the program computed.
 
 ### Value printing
 
-- Numbers: [e.g. 5 rather than 5.0]
-- Nil: [spelling]
-- Strings: [with or without quotes]
+- Numbers: shortest form, so `5` rather than `5.0`. Both `0` and `-0` print as `0`. `NaN`, `Infinity` and `-Infinity` print by those names. 
+- Nil: `nil`
+- Strings: without quotes. `"hi"` prints as `hi`.
 
 ### Truthiness
 
-[The complete rule. Which values are false in a condition; everything else is
-true.]
+Only `false` and `nil` are falsy. Everything else is truthy, including `0`, `0.0` and the empty string `""`. Because there is no `nil` literal yet, truthiness can only be observed through `not`: `not x` is `true` exactly when `x` is falsy.
 
 ### Operator semantics
 
-- Arithmetic: [accepted operand types]
-- `+` on strings: [concatenation, error, or coercion]
-- Mixed types: [what happens]
-- Comparison: [accepted operand types]
-- Equality across types: [false, or an error]
-- Division by zero: [value produced, or runtime error]
+- Arithmetic: `-`, `*`, `/`, `%` accept numbers only. `%` keeps the sign of the left operand (`-7 % 3` is `-1`, `7 % -3` is `1`). Unary `-` accepts a number only.
+- `+` on strings: concatenation. `+` accepts two numbers or two strings.
+- Mixed types: a runtime error, with no automatic conversion. `"a" + 1` fails with `Operands must be two numbers or two strings.` and `"a" - 1` fails with `Operands must be numbers.`
+- Comparison: `<`, `<=`, `>`, `>=` accept numbers only. 
+- Equality across types: `false`. `==` and `!=` accept any two values. `1 == "1"` is `false` and `0 == false` is `false`. Same-type values compare by content.
+- Division by zero: a runtime error (`Division by zero.`), not `Infinity`. `x % 0` is also a runtime error (`Modulo by zero.`), not `NaN`.
+- Evaluation order: left operand, then right operand, and an error in the left is reported first. 
 
 ### Scope and bindings
 
@@ -212,7 +220,7 @@ Message format:
 | --- | --- | --- | --- |
 | tests/lab1 | Scanner | sidecar | `--tokenize` |
 | tests/lab2 | Parser | sidecar | `--parse` |
-| tests/lab3 | Evaluator | inline | none |
+| tests/lab3 | Evaluator | inline | `--eval` |
 | tests/lab4 | Context | inline | none |
 | tests/lab5 | Functions | inline | none |
 
