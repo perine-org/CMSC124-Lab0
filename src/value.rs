@@ -38,8 +38,8 @@ impl Value {
         }
     }
 
-    //used the derived equality so different types don't compare as equal by accident
-    #[allow(dead_code)] // used by '==' / '!=' once comparison operators land
+    // used for == and !=; different types don't match
+    // so 1 == "1" is false, and NaN doesn't equal itself
     pub fn is_equal(&self, other: &Value) -> bool {
         self == other
     }
