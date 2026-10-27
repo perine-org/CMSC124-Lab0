@@ -41,9 +41,20 @@ fn main() {
     }
 }
 
+// reads the source file or exits with an error message instead of panicking
+fn read_source(path: &str) -> String {
+    match fs::read_to_string(path) {
+        Ok(source) => source,
+        Err(err) => {
+            eprintln!("Error reading '{}': {}", path, err);
+            std::process::exit(65);
+        }
+    }
+}
+
 // runs only the scanner and prints the tokens produced from the source file
 fn run_tokenize(path: &str) {
-    let source = fs::read_to_string(path).expect("Failed to read source file");
+    let source = read_source(path);
 
     let mut s = Scanner::new(&source);
     let tokens = s.scan_tokens();
@@ -58,7 +69,7 @@ fn run_tokenize(path: &str) {
 
 // scans and parses the file, then prints the resulting AST
 fn run_parse(path: &str) {
-    let source = fs::read_to_string(path).expect("Failed to read source file");
+    let source = read_source(path);
 
     let mut s = Scanner::new(&source);
     let tokens = s.scan_tokens().clone();
@@ -86,7 +97,7 @@ fn run_parse(path: &str) {
 
 // run eval: parse everything first so static errors happen before any output
 fn run_eval(path: &str) {
-    let source = fs::read_to_string(path).expect("Failed to read source file"); // Week 3: replace the .expect
+    let source = read_source(path);
 
     let mut s = Scanner::new(&source);
     let tokens = s.scan_tokens().clone();
