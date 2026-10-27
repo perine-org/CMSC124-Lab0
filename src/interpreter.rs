@@ -17,7 +17,7 @@ impl RuntimeError {
 
     // sending errors to stderr so normal output stays clean.
     pub fn report(&self) {
-        eprintln!("[line {}] Poker error: {}", self.token.line, self.message);
+        eprintln!("[line {}] Runtime error: {}", self.token.line, self.message);
     }
 }
 
