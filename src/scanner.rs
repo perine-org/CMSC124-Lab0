@@ -163,8 +163,11 @@ impl Scanner {
         }
 
         let text: String = self.source[self.start..self.current].iter().collect();
-        let value: f64 = text.parse().expect("Failed to parse number literal");
-        self.add_token_with_literal(TokenType::Number, Literal::Number(value));
+        // convert the scanned digits into f64 or report a scanner error instead of panicking
+        match text.parse::<f64>() {
+            Ok(value) => self.add_token_with_literal(TokenType::Number, Literal::Number(value)),
+            Err(_) => self.error(&format!("Invalid number literal '{}'.", text)),
+        }
     }
 
     // reads everything between the quotes and stores only the string contents as the literal
