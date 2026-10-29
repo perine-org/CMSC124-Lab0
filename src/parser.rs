@@ -1,5 +1,4 @@
-use crate::ast::Expr;
-use crate::ast::Program;
+use crate::ast::{Expr, Program, Stmt};
 use crate::token::{Token, TokenType};
 
 #[derive(Debug)]
@@ -32,6 +31,47 @@ impl Parser {
             }
         }
         (Program { expressions: exprs }, self.had_error)
+    }
+
+    // *  <program> ::= <declaration>* EOF
+    // parses a sequence of declarations and statements for plain `./run <file>` execution
+    #[allow(dead_code)] // used by run_program and REPL once statement execution lands
+    pub fn parse_statements(&mut self) -> (Vec<Stmt>, bool) {
+        let mut statements = Vec::new();
+        while !self.is_at_end() {
+            match self.declaration() {
+                Ok(stmt) => statements.push(stmt),
+                Err(_) => self.synchronize(),
+            }
+        }
+        (statements, self.had_error)
+    }
+
+    // * <declaration> ::= <statement>
+    // entry point for top-level and block items; `set` and `deal` declarations join here in PR2
+    fn declaration(&mut self) -> Result<Stmt, ParseError> {
+        self.statement()
+    }
+
+    // * <statement> ::= <show_stmt> | <expr_stmt>
+    fn statement(&mut self) -> Result<Stmt, ParseError> {
+        if self.match_types(&[TokenType::Show]) {
+            return self.show_statement();
+        }
+        self.expr_statement()
+    }
+
+    // * <show_stmt> ::= "show" <expression> ";"
+    fn show_statement(&mut self) -> Result<Stmt, ParseError> {
+        let value = self.parse_expression()?;
+        self.consume(TokenType::Semicolon, "Expect ';' after value.")?;
+        Ok(Stmt::Show(value))
+    }
+
+    // * <expr_stmt> ::= <expression> ";"
+    fn expr_statement(&mut self) -> Result<Stmt, ParseError> {
+        let expr = self.expression_statement()?;
+        Ok(Stmt::Expression(expr))
     }
 
     // *GRAMMAR RULE: <expression> ::= <equality>
