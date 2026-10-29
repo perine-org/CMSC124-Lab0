@@ -25,10 +25,10 @@ Despite the poker theme, the language focuses on **deterministic logic and decis
 | `./run <file>` | [Executes a program. Available from Lab 4.] |
 | `./run --tokenize <file>` | [Prints the token stream.] |
 | `./run --parse <file>` | [Prints the parsed tree.] |
-| `./run --eval <file>` | [Evaluates each expression and prints its value.  **Not yet implemented** — scoped for a later lab. ] |
+| `./run --eval <file>` | [Evaluates each expression in the file and prints its value, one per line.] |
 | `./run` | [Starts the REPL.] |
 
-Exit codes: `0` on success,  `64` for incorrect command usage (wrong flags or number of arguments) . `65` when input is invalid (lexical or any syntax error)
+Exit codes: `0` on success,  `64` for incorrect command usage (wrong flags or number of arguments) . `65` when input is invalid (lexical or any syntax error). `70` when a runtime error happens while evaluating (file mode)
 
 ## File extension
 
@@ -204,14 +204,15 @@ Only `false` and `nil` are falsy. Everything else is truthy, including `0`, `0.0
 Message format:
 
 ```
-[one real static error]
-[one real runtime error]
+[line 1] Error at ';': Expect ')' after expression.
+[line 1] Runtime error: Division by zero.
 ```
 
 | Failure | Exit code |
 | --- | --- |
 | lexical error | 65 |
 | syntax error | 65 |
+| runtime error (file mode) | 70 |
 |Incorrect command usage|64|
 
 ## Testing conventions
@@ -225,7 +226,7 @@ Message format:
 | tests/lab5 | Functions | inline | none |
 
 ```
-[specific tests]...
+Lab 3 tests are inline: the program, its expected output, and its expected exit code live in one `.pkr` file, using `!!` comments such as `!! expect: 7`, `!! expect runtime error: Division by zero.`, and `!! expect error: Expect ')' after expression.`. Every error test holds exactly one error annotation.
 ```
 
 Run locally with:
@@ -235,6 +236,7 @@ curl -sSL https://raw.githubusercontent.com/WhiteLicorice/cmsc-124-harness/v1.1/
 ./build.sh
 python3 run_tests.py tests/lab1
 python3 run_tests.py tests/lab2
+python3 run_tests.py tests/lab3
 ```
 
 ## Scanner Example
@@ -278,6 +280,32 @@ Output:
 
 These outputs show that multiplication happens before addition, parentheses change the grouping, subtraction is left-associative, and unary `-` can be applied to a group.
 
+## Evaluator Example
+
+Input:
+
+```text
+2 + 3 * 4;
+(2 + 3) * 4;
+10 / 4;
+"a" + "b";
+1 == "1";
+not 0;
+```
+
+Output (`./run --eval`):
+
+```text
+14
+20
+2.5
+ab
+false
+false
+```
+
+A runtime error (`1 / 0;`) prints `[line 1] Runtime error: Division by zero.` on stderr and exits with code 70.
+
 ## Design rationale
 
 - **Poker vocabulary over generic keywords:** Uses poker terms like `deal`, `fold`, `bust`, and `round` so the code feels like a poker game.
@@ -301,11 +329,23 @@ These outputs show that multiplication happens before addition, parentheses chan
 
 - **Error recovery:** When parsing fails, the Parser skips to the next `;` and continues instead of stopping immediately.
 
+- **Tagged union for values:** `Value` is a Rust enum with one variant per runtime type (number, string, boolean, nil). Matching on the variant is how the evaluator checks types, and the compiler warns about missed cases. We avoided `Box<dyn Any>` with downcasting, which Rust does not need.
+
+- **Division by zero is an error:** Dividing by zero is most likely a mistake. `Infinity` or `NaN` would let it spread silently through later calculations, so we report it where it happens.
+
+- **No automatic conversion in `+`:** `"a" + 1` is an error, because silent conversion hides type mistakes. Strings only concatenate with strings.
+
+- **Errors as `Result`, not panics:** The evaluator returns `Result<Value, RuntimeError>` and uses `?` to unwind. The error carries the operator token so the message includes a line number, and it is reported in one place (`main.rs` for files, `repl.rs` for the REPL).
+
+- **Left-to-right evaluation:** The left operand is always evaluated before the right.
+
+- **Semantics written once:** Truthiness, equality, and number formatting each live in `value.rs` and are shared by file mode and the REPL.
+
 ## Known limitations
 
-- `./run <file>` and `./run --eval` are not implemented yet, so programs cannot be executed or evaluated.
+- `./run <file>` is a placeholder until Lab 4. Use `./run --eval <file>` to evaluate expressions.
 - `--parse` only supports a single expression. Statements like `set`, `deal`, `call`, `flush`, `fold`, `bet`, `bust`, `round`, and `show` are not parsed yet.
-- Assignment (`=`) and logical operators (`and`, `or`, `not`) are recognized but cannot be parsed yet.
+- Assignment (`=`) and logical operators (`and`, `or`) are recognized but cannot be parsed yet. (`not` works.)
 - Block comments cannot be nested.
 
 ## Changelog
@@ -314,3 +354,4 @@ These outputs show that multiplication happens before addition, parentheses chan
 |---|---|
 | Lab 1 | Implemented the Scanner: operators, strings, numbers, identifiers and keywords, `!!`/`!!!` comments, line tracking, `--tokenize` mode, and error reporting with exit code 65. |
 | Lab 2 | Added the Parser, AST, grammar, expression parsing, error recovery, `--parse`, and REPL parsing. |
+| Lab 3 | Added the evaluator and `Value` enum, runtime type checking, runtime errors with line numbers and exit code 70, `--eval` mode, and REPL evaluation. Added the inline test folder `tests/lab3`. |
