@@ -34,6 +34,17 @@ pub enum Expr {
     }
 }
 
+// represents executable statements in program mode, separate from value-producing expressions
+#[allow(dead_code)] // used by run_program and interpreter once statement execution lands
+#[derive(Debug, Clone)]
+pub enum Stmt {
+    // evaluates an expression for its side effects and discards the value
+    Expression(Expr),
+
+    // evaluates an expression and prints its runtime value to stdout
+    Show(Expr),
+}
+
 
 
 impl fmt::Display for Program {
@@ -64,6 +75,16 @@ impl fmt::Display for Expr {
             Expr::Unary { operator, right } => {
                 write!(f, "({} {})", operator.lexeme, right)
             }
+        }
+    }
+}
+
+// keeps statement AST nodes printable for debugging and inspection
+impl fmt::Display for Stmt {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Stmt::Expression(expr) => write!(f, "{}", expr),
+            Stmt::Show(expr) => write!(f, "(show {})", expr),
         }
     }
 }
