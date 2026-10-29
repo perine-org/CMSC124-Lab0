@@ -14,11 +14,23 @@ pub fn run_repl(mode: Mode) {
     let stdin = io::stdin();
     loop {
         print!("> ");
-        io::stdout().flush().expect("Failed to flush stdout");
+        // stop the REPL cleanly if stdout fails instead of panicking
+        if let Err(err) = io::stdout().flush() {
+            eprintln!("Error flushing stdout: {}", err);
+            break;
+        }
 
         let mut line = String::new();
-        let bytes_read = stdin.read_line(&mut line).expect("Failed to read line");
+        // handle input errors without crashing the session
+        let bytes_read = match stdin.read_line(&mut line) {
+            Ok(n) => n,
+            Err(err) => {
+                eprintln!("Error reading input: {}", err);
+                break;
+            }
+        };
 
+        // exit on EOF (Ctrl+D / Ctrl+Z)
         if bytes_read == 0 {
             break;
         }
@@ -67,7 +79,8 @@ pub fn run_repl(mode: Mode) {
                     }
                 }
             }
-            Mode::Tokenize => unreachable!(),
+            // already handled above, kept as an empty arm to avoid panicking macros
+            Mode::Tokenize => {}
         }
     }
 }
