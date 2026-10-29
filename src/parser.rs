@@ -18,25 +18,11 @@ impl Parser {
         Parser { tokens, current: 0, had_error: false }
     }
 
-    // * GRAMMAR RULE: <program> ::= ( <expression> ";" )* EOF
-    /// Parses a whole file: a sequence of `expression ";"`.
-    /// synchronize to the next ';' and continue, so one bad expression doesn't
-    /// lose the rest of the file. 
+    // * GRAMMAR RULE: <program> ::= <declaration>* EOF
+    // parses a whole file or REPL line into statements.
+    // on an error, synchronize to the next ';' and continue, so one bad
+    // statement doesn't lose the rest of the file.
     pub fn parse_program(&mut self) -> (Program, bool) {
-        let mut exprs = Vec::new();
-        while !self.is_at_end() {
-            match self.expression_statement() {
-                Ok(e) => exprs.push(e),
-                Err(_) => self.synchronize(),
-            }
-        }
-        (Program { expressions: exprs }, self.had_error)
-    }
-
-    // *  <program> ::= <declaration>* EOF
-    // parses a sequence of declarations and statements for plain `./run <file>` execution
-    #[allow(dead_code)] // used by run_program and REPL once statement execution lands
-    pub fn parse_statements(&mut self) -> (Vec<Stmt>, bool) {
         let mut statements = Vec::new();
         while !self.is_at_end() {
             match self.declaration() {
@@ -44,7 +30,7 @@ impl Parser {
                 Err(_) => self.synchronize(),
             }
         }
-        (statements, self.had_error)
+        (Program { statements }, self.had_error)
     }
 
     // * <declaration> ::= <statement>
@@ -74,7 +60,6 @@ impl Parser {
         Ok(Stmt::Expression(expr))
     }
 
-    // *GRAMMAR RULE: <expression> ::= <equality>
     // expression ";"
     fn expression_statement(&mut self) -> Result<Expr, ParseError> {
         let expr = self.parse_expression()?;
@@ -82,6 +67,7 @@ impl Parser {
         Ok(expr)
     }
 
+    // *GRAMMAR RULE: <expression> ::= <equality>
     pub fn parse_expression(&mut self) -> Result<Expr, ParseError> {
         self.equality()
     }
@@ -152,7 +138,7 @@ impl Parser {
         self.primary()
     }
 
-   // *GRAMMAR RULE: <primary> ::= NUMBER | STRING | "true" | "false" | "(" <expression> ")"
+    // *GRAMMAR RULE: <primary> ::= NUMBER | STRING | "true" | "false" | "(" <expression> ")"
     fn primary(&mut self) -> Result<Expr, ParseError> {
         if self.match_types(&[TokenType::Number]) {
             return Ok(Expr::Literal(self.previous().literal.clone()));
@@ -169,8 +155,7 @@ impl Parser {
         if self.match_types(&[TokenType::LeftParen]) {
             let expr = self.parse_expression()?;
             self.consume(TokenType::RightParen, "Expect ')' after expression.")?;
-            return Ok(Expr::Grouping { 
-                expression: Box::new(expr) });
+            return Ok(Expr::Grouping { expression: Box::new(expr) });
         }
 
         let peek_token = self.peek().clone();
@@ -232,11 +217,8 @@ impl Parser {
         ParseError
     }
 
-    // TODO: Call this from the multi-expression parse loop after catching ParseError for error recovery; not wired up yet.
-    /// Skips broken tokens until reaching a token that can start a new expression.
-
     /// Error recovery: discards tokens up to and including the next ';', so
-    /// parsing resumes at the start of the next expression. It always consumes
+    /// parsing resumes at the start of the next statement. It always consumes
     /// at least one token unless already at Eof, so it can't loop forever.
     fn synchronize(&mut self) {
         while !self.is_at_end() {

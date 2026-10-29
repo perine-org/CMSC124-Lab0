@@ -1,4 +1,4 @@
-use crate::ast::Expr;
+use crate::ast::{Expr, Stmt};
 use crate::token::{Token, TokenType};
 use crate::value::Value;
 
@@ -18,6 +18,33 @@ impl RuntimeError {
     // sending errors to stderr so normal output stays clean.
     pub fn report(&self) {
         eprintln!("[line {}] Runtime error: {}", self.token.line, self.message);
+    }
+}
+
+// holds the evaluator's state. empty danay; week 2 will add enivormnetn
+// so file mode and the REPL can share one instance and variables persist.
+#[derive(Default)]
+pub struct Interpreter {}
+
+impl Interpreter {
+    pub fn new() -> Self {
+        Interpreter {}
+    }
+
+    // runs one statement for its effect
+    // Expression: evaluate and discard the value; Show: print the value to stdout
+    pub fn execute(&mut self, stmt: &Stmt) -> Result<(), RuntimeError> {
+        match stmt {
+            Stmt::Expression(e) => {
+                eval(e)?;
+                Ok(())
+            }
+            Stmt::Show(e) => {
+                let v = eval(e)?;
+                println!("{}", v);
+                Ok(())
+            }
+        }
     }
 }
 

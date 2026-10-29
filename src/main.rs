@@ -6,6 +6,7 @@ mod repl;
 mod value;
 mod interpreter;
 
+use ast::{Program, Stmt};
 use scanner::Scanner;
 use std::env;
 use std::fs;
@@ -52,6 +53,25 @@ fn read_source(path: &str) -> String {
     }
 }
 
+// scan + parse a file; any static error exits 65 before anything runs.
+// shared by --parse, --eval and plain ./run so the front end exists only once
+fn load_program(path: &str) -> Program {
+    let source = read_source(path);
+
+    let mut s = Scanner::new(&source);
+    let tokens = s.scan_tokens().clone();
+    if s.had_error {
+        std::process::exit(65);
+    }
+
+    let mut p = parser::Parser::new(tokens);
+    let (program, had_error) = p.parse_program();
+    if had_error {
+        std::process::exit(65);
+    }
+    program
+}
+
 // runs only the scanner and prints the tokens produced from the source file
 fn run_tokenize(path: &str) {
     let source = read_source(path);
@@ -69,23 +89,7 @@ fn run_tokenize(path: &str) {
 
 // scans and parses the file, then prints the resulting AST
 fn run_parse(path: &str) {
-    let source = read_source(path);
-
-    let mut s = Scanner::new(&source);
-    let tokens = s.scan_tokens().clone();
-
-    if s.had_error {
-        std::process::exit(65);
-    }
-
-    /* parse() returns Result instead of exiting from inside the parser
-    in ref to parser.rs - this is the one place that turns a parse failure
-    into the run contract's "nothing on stdout, exit 65". */
-    let mut p = parser::Parser::new(tokens);
-    let (program, had_error) = p.parse_program();
-    if had_error {
-        std::process::exit(65);
-    }
+    let program = load_program(path);
 
     let out = program.to_string();
     if !out.is_empty() {
@@ -93,36 +97,33 @@ fn run_parse(path: &str) {
     }
 }
 
-
-
-// run eval: parse everything first so static errors happen before any output
+// --eval keeps the Lab 3 behavior: every expression statement prints its value.
+// show statements still go through execute.
 fn run_eval(path: &str) {
-    let source = read_source(path);
+    let program = load_program(path);
+    let mut interp = interpreter::Interpreter::new();
 
-    let mut s = Scanner::new(&source);
-    let tokens = s.scan_tokens().clone();
-    if s.had_error {
-        std::process::exit(65);
-    }
-
-    let mut p = parser::Parser::new(tokens);
-    let (program, had_error) = p.parse_program();
-    if had_error {
-        std::process::exit(65);
-    }
-
-    for e in program.expressions {
-        match interpreter::eval(&e) {
-            Ok(v) => println!("{}", v),
-            Err(err) => {
-                err.report();            // stderr
-                std::process::exit(70);  // runtime error
-            }
+    for stmt in &program.statements {
+        let result = match stmt {
+            Stmt::Expression(e) => interpreter::eval(e).map(|v| println!("{}", v)),
+            other => interp.execute(other),
+        };
+        if let Err(err) = result {
+            err.report();            // stderr
+            std::process::exit(70);  // runtime error
         }
     }
 }
 
-// run program, placeholder until lab 4 execution exists)
-fn run_program(_path: &str) {
-    println!("Hello, world!");
+// plain ./run <file>: execute statements in order; only show produces output
+fn run_program(path: &str) {
+    let program = load_program(path);
+    let mut interp = interpreter::Interpreter::new();
+
+    for stmt in &program.statements {
+        if let Err(err) = interp.execute(stmt) {
+            err.report();            // stderr
+            std::process::exit(70);  // runtime error
+        }
+    }
 }

@@ -1,3 +1,4 @@
+use crate::ast::Stmt;
 use crate::interpreter;
 use crate::scanner::Scanner;
 use crate::parser::Parser;
@@ -12,6 +13,8 @@ pub enum Mode {
 // handles one input line at a time through scanning, parsing, and evaluation
 pub fn run_repl(mode: Mode) {
     let stdin = io::stdin();
+    // one interpreter for the whole session so state survives between lines
+    let mut interp = interpreter::Interpreter::new();
     loop {
         print!("> ");
         // stop the REPL cleanly if stdout fails instead of panicking
@@ -62,20 +65,22 @@ pub fn run_repl(mode: Mode) {
         // the selected mode decides whether to print the AST or evaluate it
         match mode {
             Mode::Parse => {
-                // prints one line per expression, same format as before
+                // prints one line per statement
                 let out = program.to_string();
                 if !out.is_empty() {
                     println!("{}", out);
                 }
             }
             Mode::Eval => {
-                for e in &program.expressions {
-                    match interpreter::eval(e) {
-                        Ok(v) => println!("{}", v),
-                        Err(err) => {
-                            err.report();
-                            break; // runtime error: stop this line, keep the session alive
-                        }
+                for stmt in &program.statements {
+                    // a bare expression prints its value in the REPL; other statements just run
+                    let result = match stmt {
+                        Stmt::Expression(e) => interpreter::eval(e).map(|v| println!("{}", v)),
+                        other => interp.execute(other),
+                    };
+                    if let Err(err) = result {
+                        err.report();
+                        break; // runtime error: stop this line, keep the session alive
                     }
                 }
             }
