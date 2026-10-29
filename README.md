@@ -70,12 +70,13 @@ Exit codes: `0` on success,  `64` for incorrect command usage (wrong flags or nu
 | `>=` | comparison | binary | left | 3 |
 | `==` | comparison | binary | left | 2 |
 | `!=` | comparison | binary | left | 2 |
-| `=` | assignment | binary | right | Not defined |
+| `=` | assignment | binary | right | 1 |
 | `and` | logical | binary | Not defined | Not defined |
 | `or` | logical | binary | Not defined | Not defined |
-| `not` | logical | unary | Not defined | Not defined |
+| `not` | logical | unary | right | 6 |
+| `-` (unary) | arithmetic | unary | right | 6 |
 
-**Note:** The precedence and associativity for +, -, *, /, %, comparison, and equality operators are based on the grammar implemented in parser.rs. However, =, and, or, and not do not have their precedence or associativity defined in the current grammar.
+**Note:** Higher numbers bind tighter (`6` is highest, `1` is lowest). Logical binary operators (`and`, `or`) are reserved for future works.
 
 ### Literals
 
@@ -107,8 +108,8 @@ Exit codes: `0` on success,  `64` for incorrect command usage (wrong flags or nu
 ## Whitespace and termination
 
 - Whitespace significant: **No.** Spaces, carriage returns (`\r`), and tabs (`\t`) are ignored by the Scanner. Newlines are also not treated as tokens, but they increment the line counter for error reporting.
-- Statement terminator: **No explicit statement terminator is defined in the Parser grammar.** A semicolon token exists in the Scanner, but the current expression grammar does not use it.
-- Block delimiters: `{` and `}` are recognized as `LEFT_BRACE` and `RIGHT_BRACE`, but they are not currently used by the Parser grammar.
+- Statement terminator: `;` (`SEMICOLON`). Variable declarations (`set`, `deal`), `show` statements, and expression statements terminate with `;`; block statements (`{ ... }`) do not require a trailing `;`.
+- Block delimiters: `{` and `}` (`LEFT_BRACE` and `RIGHT_BRACE`) enclose nested lexical block scopes.
 - Grouping delimiters: `(` and `)`. Parentheses are used to group expressions in the grammar: `"(" expression ")"`.
 - End of input: The Scanner automatically adds an `EOF` token after scanning the entire source.
 
@@ -124,15 +125,28 @@ Fields: token type, lexeme, literal value (or empty), line number.
 ## Grammar
 
 ```
-program    → ( expression ";" )* EOF
-expression → equality
-equality   → comparison ( ( "==" | "!=" ) comparison )*
-comparison → term ( ( "<" | "<=" | ">" | ">=" ) term )*
-term       → factor ( ( "+" | "-" ) factor )*
-factor     → unary ( ( "*" | "/" | "%" ) unary )*
-unary      → ( "not" | "-" ) unary | primary
-primary    → NUMBER | STRING | "true" | "false" | "(" expression ")"
+program     → declaration* EOF
+declaration → setDecl | dealDecl | statement
+setDecl     → "set" IDENTIFIER ( "=" expression )? ";"
+dealDecl    → "deal" IDENTIFIER "=" expression ";"
+statement   → showStmt | exprStmt | block
+showStmt    → "show" expression ";"
+exprStmt    → expression ";"
+block       → "{" declaration* "}"
+
+expression  → assignment
+assignment  → IDENTIFIER "=" assignment | equality
+equality    → comparison ( ( "==" | "!=" ) comparison )*
+comparison  → term ( ( "<" | "<=" | ">" | ">=" ) term )*
+term        → factor ( ( "+" | "-" ) factor )*
+factor      → unary ( ( "*" | "/" | "%" ) unary )*
+unary       → ( "not" | "-" ) unary | primary
+primary     → NUMBER | STRING | "true" | "false" | IDENTIFIER | "(" expression ")"
 ```
+
+- **Where bindings and forms are legal:** Variable declarations (`set` and `deal`) can be used at the top level of the program or directly inside `{ ... }` blocks. `set` creates a mutable binding, and its `= expression` initializer is optional, so it defaults to `nil` if omitted. `deal` creates an immutable binding, so it needs an `= expression` initializer when declared. Executable statements like `show`, expression statements, and nested `{ ... }` blocks can be used wherever a `declaration` is expected. Assignments (`=`) and identifier lookups are expressions, so they can also be used anywhere an expression is allowed.
+
+- The expression-only flags `--parse` and `--eval` still accept `( expression ";" )* EOF`, so the Lab 2 and Lab 3 test suites will continue to work as before.
 
 ## Parse output format
 
