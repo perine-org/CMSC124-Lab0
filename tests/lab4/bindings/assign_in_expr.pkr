@@ -1,0 +1,1 @@
+set chips = 10; show (chips = 25) + 5;   !! expect: 30

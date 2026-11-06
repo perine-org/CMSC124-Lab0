@@ -32,6 +32,15 @@ pub enum Expr {
         operator: Token,
         right: Box<Expr>,
     },
+
+    // reads the current value bound to an identifier
+    Variable(Token),
+
+    // updates an existing mutable variable and produces the assigned value
+    Assign {
+        name: Token,
+        value: Box<Expr>,
+    },
 }
 
 // represents executable statements, separate from value-producing expressions
@@ -42,6 +51,13 @@ pub enum Stmt {
 
     // evaluates an expression and prints its runtime value to stdout
     Show(Expr),
+
+    // introduces a binding via `set` (mutable = true) or `deal` (mutable = false)
+    VarDecl {
+        name: Token,
+        initializer: Option<Expr>,
+        mutable: bool,
+    },
 }
 
 // one statement per line, so --parse output stays readable
@@ -73,6 +89,10 @@ impl fmt::Display for Expr {
             Expr::Unary { operator, right } => {
                 write!(f, "({} {})", operator.lexeme, right)
             }
+            Expr::Variable(name) => write!(f, "{}", name.lexeme),
+            Expr::Assign { name, value } => {
+                write!(f, "(= {} {})", name.lexeme, value)
+            }
         }
     }
 }
@@ -84,6 +104,13 @@ impl fmt::Display for Stmt {
         match self {
             Stmt::Expression(expr) => write!(f, "{}", expr),
             Stmt::Show(expr) => write!(f, "(show {})", expr),
+            Stmt::VarDecl { name, initializer, mutable } => {
+                let keyword = if *mutable { "set" } else { "deal" };
+                match initializer {
+                    Some(expr) => write!(f, "({} {} {})", keyword, name.lexeme, expr),
+                    None => write!(f, "({} {})", keyword, name.lexeme),
+                }
+            }
         }
     }
 }

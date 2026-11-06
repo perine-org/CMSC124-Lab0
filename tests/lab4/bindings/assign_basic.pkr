@@ -1,0 +1,1 @@
+set spade = 5; spade = 10; show spade;   !! expect: 10

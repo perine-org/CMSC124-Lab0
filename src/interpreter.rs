@@ -57,6 +57,11 @@ impl Interpreter {
                 println!("{}", v);
                 Ok(())
             }
+            // TODO: placeholder until Environment module lands
+            Stmt::VarDecl { name, .. } => Err(RuntimeError::new(
+                name,
+                "Variable declarations are not evaluated yet.",
+            )),
         }
     }
 }
@@ -89,6 +94,12 @@ pub fn eval(expr: &Expr) -> Result<Value, RuntimeError> {
             let right = eval(right)?;
             binary(operator, left, right)
         }
+
+        // TODO: placeholders until Environment lands
+        Expr::Variable(name) | Expr::Assign { name, .. } => Err(RuntimeError::new(
+            name,
+            "Variables and assignment are not evaluated yet.",
+        )),
     }
 }
 
