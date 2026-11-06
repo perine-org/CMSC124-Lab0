@@ -6,7 +6,7 @@ mod repl;
 mod value;
 mod interpreter;
 
-use ast::{Program, Stmt};
+use ast::Program;
 use scanner::Scanner;
 use std::env;
 use std::fs;
@@ -32,7 +32,7 @@ fn main() {
         [_, "--eval", path] => run_eval(path),
 
         // ./run file.<ext>
-        [_, path] => run_program(path),
+        [_, path] if !path.starts_with("--") => run_program(path),
 
         // anything else
         _ => {
@@ -103,15 +103,9 @@ fn run_eval(path: &str) {
     let program = load_program(path);
     let mut interp = interpreter::Interpreter::new();
 
-    for stmt in &program.statements {
-        let result = match stmt {
-            Stmt::Expression(e) => interpreter::eval(e).map(|v| println!("{}", v)),
-            other => interp.execute(other),
-        };
-        if let Err(err) = result {
-            err.report();            // stderr
-            std::process::exit(70);  // runtime error
-        }
+    if let Err(err) = interp.run(&program, true) {
+        err.report();            // stderr
+        std::process::exit(70);  // runtime error
     }
 }
 
@@ -120,10 +114,8 @@ fn run_program(path: &str) {
     let program = load_program(path);
     let mut interp = interpreter::Interpreter::new();
 
-    for stmt in &program.statements {
-        if let Err(err) = interp.execute(stmt) {
-            err.report();            // stderr
-            std::process::exit(70);  // runtime error
-        }
+    if let Err(err) = interp.run(&program, false) {
+        err.report();            // stderr
+        std::process::exit(70);  // runtime error
     }
 }

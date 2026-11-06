@@ -1,4 +1,3 @@
-use crate::ast::Stmt;
 use crate::interpreter;
 use crate::scanner::Scanner;
 use crate::parser::Parser;
@@ -72,16 +71,10 @@ pub fn run_repl(mode: Mode) {
                 }
             }
             Mode::Eval => {
-                for stmt in &program.statements {
-                    // a bare expression prints its value in the REPL; other statements just run
-                    let result = match stmt {
-                        Stmt::Expression(e) => interpreter::eval(e).map(|v| println!("{}", v)),
-                        other => interp.execute(other),
-                    };
-                    if let Err(err) = result {
-                        err.report();
-                        break; // runtime error: stop this line, keep the session alive
-                    }
+                // a bare expression prints its value in the REPL; other statements just run
+                if let Err(err) = interp.run(&program, true) {
+                    err.report();
+                    // runtime error: stop this line, keep the session alive
                 }
             }
             // already handled above, kept as an empty arm to avoid panicking macros
