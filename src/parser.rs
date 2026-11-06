@@ -33,10 +33,40 @@ impl Parser {
         (Program { statements }, self.had_error)
     }
 
-    // * <declaration> ::= <statement>
-    // entry point for top-level and block items; `set` and `deal` declarations join here in PR2
+    // * <declaration> ::= <set_decl> | <deal_decl> | <statement>
     fn declaration(&mut self) -> Result<Stmt, ParseError> {
+        if self.match_types(&[TokenType::Set]) {
+            return self.var_declaration(true);
+        }
+        if self.match_types(&[TokenType::Deal]) {
+            return self.var_declaration(false);
+        }
         self.statement()
+    }
+
+    // * <set_decl>  ::= "set" IDENTIFIER ( "=" <expression> )? ";"
+    // * <deal_decl> ::= "deal" IDENTIFIER "=" <expression> ";"
+    fn var_declaration(&mut self, mutable: bool) -> Result<Stmt, ParseError> {
+        let name = self.consume(TokenType::Identifier, "Expect variable name.")?;
+
+        let initializer = if mutable {
+            if self.match_types(&[TokenType::Assign]) {
+                Some(self.parse_expression()?)
+            } else {
+                None
+            }
+        } else {
+            // `deal` bindings cannot be reassigned later, so an initializer is required
+            self.consume(TokenType::Assign, "Expect '=' after immutable variable name.")?;
+            Some(self.parse_expression()?)
+        };
+
+        self.consume(TokenType::Semicolon, "Expect ';' after variable declaration.")?;
+        Ok(Stmt::VarDecl {
+            name,
+            initializer,
+            mutable,
+        })
     }
 
     // * <statement> ::= <show_stmt> | <expr_stmt>
@@ -67,9 +97,32 @@ impl Parser {
         Ok(expr)
     }
 
-    // *GRAMMAR RULE: <expression> ::= <equality>
+    // *GRAMMAR RULE: <expression> ::= <assignment>
     pub fn parse_expression(&mut self) -> Result<Expr, ParseError> {
-        self.equality()
+        self.assignment()
+    }
+
+    // *GRAMMAR RULE: <assignment> ::= IDENTIFIER "=" <assignment> | <equality>
+    // parses the left side as a general expression first, then validates the L-value if '=' follows
+    fn assignment(&mut self) -> Result<Expr, ParseError> {
+        let expr = self.equality()?;
+
+        if self.match_types(&[TokenType::Assign]) {
+            let equals = self.previous();
+            // recurses into assignment() so chained assignments like `a = b = 5` are right-associative
+            let value = self.assignment()?;
+
+            if let Expr::Variable(name) = expr {
+                return Ok(Expr::Assign {
+                    name,
+                    value: Box::new(value),
+                });
+            }
+
+            return Err(self.error(equals, "Invalid assignment target."));
+        }
+
+        Ok(expr)
     }
 
     // *GRAMMAR RULE: <equality> ::= <comparison> { ( "==" | "!=" ) <comparison> }
@@ -138,7 +191,7 @@ impl Parser {
         self.primary()
     }
 
-    // *GRAMMAR RULE: <primary> ::= NUMBER | STRING | "true" | "false" | "(" <expression> ")"
+    // *GRAMMAR RULE: <primary> ::= NUMBER | STRING | "true" | "false" | IDENTIFIER | "(" <expression> ")"
     fn primary(&mut self) -> Result<Expr, ParseError> {
         if self.match_types(&[TokenType::Number]) {
             return Ok(Expr::Literal(self.previous().literal.clone()));
@@ -150,6 +203,10 @@ impl Parser {
 
         if self.match_types(&[TokenType::True, TokenType::False]) {
             return Ok(Expr::Literal(self.previous().literal.clone()));
+        }
+
+        if self.match_types(&[TokenType::Identifier]) {
+            return Ok(Expr::Variable(self.previous()));
         }
 
         if self.match_types(&[TokenType::LeftParen]) {

@@ -70,10 +70,11 @@ Exit codes: `0` on success,  `64` for incorrect command usage (wrong flags or nu
 | `>=` | comparison | binary | left | 3 |
 | `==` | comparison | binary | left | 2 |
 | `!=` | comparison | binary | left | 2 |
-| `=` | assignment | binary | right | Not defined |
+| `=` | assignment | binary | right | 1 |
 | `and` | logical | binary | Not defined | Not defined |
 | `or` | logical | binary | Not defined | Not defined |
-| `not` | logical | unary | Not defined | Not defined |
+| `not` | logical | unary | right | 6 |
+| `-` (unary) | arithmetic | unary | right | 6 |
 
 **Note:** Precedence and associativity for `+`, `-`, `*`, `/`, `%`, comparison and equality come from the grammar in parser.rs. `not` is unary, at the same level as unary `-` (right-associative, binds tighter than `*`). `=`, `and` and `or` are scanned but not parsed yet.
 
@@ -124,15 +125,28 @@ Fields: token type, lexeme, literal value (or empty), line number.
 ## Grammar
 
 ```
-program    → ( expression ";" )* EOF
-expression → equality
-equality   → comparison ( ( "==" | "!=" ) comparison )*
-comparison → term ( ( "<" | "<=" | ">" | ">=" ) term )*
-term       → factor ( ( "+" | "-" ) factor )*
-factor     → unary ( ( "*" | "/" | "%" ) unary )*
-unary      → ( "not" | "-" ) unary | primary
-primary    → NUMBER | STRING | "true" | "false" | "(" expression ")"
+program     → declaration* EOF
+declaration → setDecl | dealDecl | statement
+setDecl     → "set" IDENTIFIER ( "=" expression )? ";"
+dealDecl    → "deal" IDENTIFIER "=" expression ";"
+statement   → showStmt | exprStmt | block
+showStmt    → "show" expression ";"
+exprStmt    → expression ";"
+block       → "{" declaration* "}"
+
+expression  → assignment
+assignment  → IDENTIFIER "=" assignment | equality
+equality    → comparison ( ( "==" | "!=" ) comparison )*
+comparison  → term ( ( "<" | "<=" | ">" | ">=" ) term )*
+term        → factor ( ( "+" | "-" ) factor )*
+factor      → unary ( ( "*" | "/" | "%" ) unary )*
+unary       → ( "not" | "-" ) unary | primary
+primary     → NUMBER | STRING | "true" | "false" | IDENTIFIER | "(" expression ")"
 ```
+
+- **Where bindings and forms are legal:** Variable declarations (`set` and `deal`) can be used at the top level of the program or directly inside `{ ... }` blocks. `set` creates a mutable binding, and its `= expression` initializer is optional, so it defaults to `nil` if omitted. `deal` creates an immutable binding, so it needs an `= expression` initializer when declared. Executable statements like `show`, expression statements, and nested `{ ... }` blocks can be used wherever a `declaration` is expected. Assignments (`=`) and identifier lookups are expressions, so they can also be used anywhere an expression is allowed.
+
+- The expression-only flags `--parse` and `--eval` still accept `( expression ";" )* EOF`, so the Lab 2 and Lab 3 test suites will continue to work as before.
 
 ## Parse output format
 

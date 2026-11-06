@@ -1,0 +1,1 @@
+(spade) = 5;   !! expect error: Invalid assignment target.

@@ -1,0 +1,1 @@
+deal ace;   !! expect error: Expect '=' after immutable variable name.
