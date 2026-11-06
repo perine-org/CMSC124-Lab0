@@ -1,4 +1,4 @@
-use crate::ast::{Expr, Stmt};
+use crate::ast::{Expr, Program, Stmt};
 use crate::token::{Token, TokenType};
 use crate::value::Value;
 
@@ -29,6 +29,19 @@ pub struct Interpreter {}
 impl Interpreter {
     pub fn new() -> Self {
         Interpreter {}
+    }
+
+    // walks the whole program 
+    // echo = true: bare expressions print their value (--eval and REPL)
+    // echo = false: only `show` prints (plain ./run <file>)
+    pub fn run(&mut self, program: &Program, echo: bool) -> Result<(), RuntimeError> {
+        for stmt in &program.statements {
+            match stmt {
+                Stmt::Expression(e) if echo => println!("{}", eval(e)?),
+                other => self.execute(other)?,
+            }
+        }
+        Ok(())
     }
 
     // runs one statement for its effect
