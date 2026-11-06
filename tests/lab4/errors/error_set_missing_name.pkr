@@ -1,0 +1,1 @@
+set = 5;   !! expect error: Expect variable name.
