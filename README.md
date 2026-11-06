@@ -75,7 +75,7 @@ Exit codes: `0` on success,  `64` for incorrect command usage (wrong flags or nu
 | `or` | logical | binary | Not defined | Not defined |
 | `not` | logical | unary | Not defined | Not defined |
 
-**Note:** The precedence and associativity for +, -, *, /, %, comparison, and equality operators are based on the grammar implemented in parser.rs. However, =, and, or, and not do not have their precedence or associativity defined in the current grammar.
+**Note:** Precedence and associativity for `+`, `-`, `*`, `/`, `%`, comparison and equality come from the grammar in parser.rs. `not` is unary, at the same level as unary `-` (right-associative, binds tighter than `*`). `=`, `and` and `or` are scanned but not parsed yet.
 
 ### Literals
 
@@ -83,8 +83,8 @@ Exit codes: `0` on success,  `64` for incorrect command usage (wrong flags or nu
 |---|---|---|
 | Number| 42, 3.14 | Number |
 | String | "hello", escapes not supported | String |
-| Booleon | [true, false] | Boolean |
-| [nil] | [spelling] | [what runtime value] |
+| Boolean | true, false | Boolean |
+| nil | no literal yet | Nil (exists in the evaluator, but no syntax produces it yet) |
 
 ### Identifiers
 
@@ -107,7 +107,7 @@ Exit codes: `0` on success,  `64` for incorrect command usage (wrong flags or nu
 ## Whitespace and termination
 
 - Whitespace significant: **No.** Spaces, carriage returns (`\r`), and tabs (`\t`) are ignored by the Scanner. Newlines are also not treated as tokens, but they increment the line counter for error reporting.
-- Statement terminator: **No explicit statement terminator is defined in the Parser grammar.** A semicolon token exists in the Scanner, but the current expression grammar does not use it.
+- Statement terminator: - Statement terminator: `;`. Every expression ends with `;`. A missing one gives `Expect ';' after expression.`, and the parser also uses `;` as its recovery point after an error.
 - Block delimiters: `{` and `}` are recognized as `LEFT_BRACE` and `RIGHT_BRACE`, but they are not currently used by the Parser grammar.
 - Grouping delimiters: `(` and `)`. Parentheses are used to group expressions in the grammar: `"(" expression ")"`.
 - End of input: The Scanner automatically adds an `EOF` token after scanning the entire source.
