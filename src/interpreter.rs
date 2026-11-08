@@ -1,6 +1,9 @@
 use crate::ast::{Expr, Program, Stmt};
+use crate::environment::{AssignError, Environment};
 use crate::token::{Token, TokenType};
 use crate::value::Value;
+use std::cell::RefCell;
+use std::rc::Rc;
 
 //  this is  when the code is valid, but the value causes a problem at runtime
 // keeping the token to show where the error happened
@@ -24,11 +27,13 @@ impl RuntimeError {
 // holds the evaluator's state. empty danay; week 2 will add enivormnetn
 // so file mode and the REPL can share one instance and variables persist.
 #[derive(Default)]
-pub struct Interpreter {}
+pub struct Interpreter {
+    env: Rc<RefCell<Environment>>,
+}
 
 impl Interpreter {
     pub fn new() -> Self {
-        Interpreter {}
+        Interpreter { env: Rc::new(RefCell::new(Environment::new())) }
     }
 
     // walks the whole program 
@@ -37,7 +42,7 @@ impl Interpreter {
     pub fn run(&mut self, program: &Program, echo: bool) -> Result<(), RuntimeError> {
         for stmt in &program.statements {
             match stmt {
-                Stmt::Expression(e) if echo => println!("{}", eval(e)?),
+                Stmt::Expression(e) if echo => println!("{}", self.eval(e)?),
                 other => self.execute(other)?,
             }
         }
@@ -49,57 +54,84 @@ impl Interpreter {
     pub fn execute(&mut self, stmt: &Stmt) -> Result<(), RuntimeError> {
         match stmt {
             Stmt::Expression(e) => {
-                eval(e)?;
+                self.eval(e)?;
                 Ok(())
             }
             Stmt::Show(e) => {
-                let v = eval(e)?;
+                let v = self.eval(e)?;
                 println!("{}", v);
                 Ok(())
             }
-            // TODO: placeholder until Environment module lands
-            Stmt::VarDecl { name, .. } => Err(RuntimeError::new(
-                name,
-                "Variable declarations are not evaluated yet.",
-            )),
-        }
-    }
-}
-
-// evaluation of the expression from the inside out
-// If something fails, return the error instead of printing it here
-pub fn eval(expr: &Expr) -> Result<Value, RuntimeError> {
-    match expr {
-        // the scanner already gave the value, so just convert it
-        Expr::Literal(literal) => Ok(Value::from_literal(literal)),
-
-        // the parser already handled the parentheses, so I just evaluate what is inside
-        Expr::Grouping { expression } => eval(expression),
-
-        Expr::Unary { operator, right } => {
-            let right = eval(right)?; // value is needed before using the operator
-            match operator.token_type {
-                TokenType::Minus => {
-                    let n = num(operator, &right)?;
-                    Ok(Value::Number(-n))
-                }
-                TokenType::Not => Ok(Value::Bool(!right.is_truthy())),
-                _ => Err(RuntimeError::new(operator, "Unknown unary operator.")),
+            Stmt::VarDecl { name, initializer, mutable } => {
+                // evaluate first, so `set a = a;` fails as an undefined read
+                let value = match initializer {
+                    Some(e) => self.eval(e)?,
+                    None => Value::Nil, // `set a;` holds nil
+                };
+                self.env.borrow_mut().define(&name.lexeme, value, *mutable);
+                Ok(())
             }
         }
+    }
 
-        Expr::Binary { left, operator, right } => {
-            // evaluate left first so its error is reported first
-            let left = eval(left)?;
-            let right = eval(right)?;
-            binary(operator, left, right)
+    // evaluation of the expression from the inside out
+    // If something fails, return the error instead of printing it here
+    pub fn eval(&mut self, expr: &Expr) -> Result<Value, RuntimeError> {
+        match expr {
+            // the scanner already gave the value, so just convert it
+            Expr::Literal(literal) => Ok(Value::from_literal(literal)),
+
+            // the parser already handled the parentheses, so I just evaluate what is inside
+            Expr::Grouping { expression } => self.eval(expression),
+
+            Expr::Unary { operator, right } => {
+                let right = self.eval(right)?; // value is needed before using the operator
+                match operator.token_type {
+                    TokenType::Minus => {
+                        let n = num(operator, &right)?;
+                        Ok(Value::Number(-n))
+                    }
+                    TokenType::Not => Ok(Value::Bool(!right.is_truthy())),
+                    _ => Err(RuntimeError::new(operator, "Unknown unary operator.")),
+                }
+            }
+
+            Expr::Binary { left, operator, right } => {
+                // evaluate left first so its error is reported first
+                let left = self.eval(left)?;
+                let right = self.eval(right)?;
+                binary(operator, left, right)
+            }
+
+            // lookup: an undefined name is a runtime error
+            Expr::Variable(name) => {
+                let found = self.env.borrow().get(&name.lexeme);
+                match found {
+                    Some(value) => Ok(value),
+                    None => Err(RuntimeError::new(
+                        name,
+                        &format!("Undefined variable '{}'.", name.lexeme),
+                    )),
+                }
+            }
+
+            // assignment evaluates the right side first, then updates the binding
+            Expr::Assign { name, value } => {
+                let value = self.eval(value)?;
+                let result = self.env.borrow_mut().assign(&name.lexeme, value.clone());
+                match result {
+                    Ok(()) => Ok(value),
+                    Err(AssignError::Undefined) => Err(RuntimeError::new(
+                        name,
+                        &format!("Undefined variable '{}'.", name.lexeme),
+                    )),
+                    Err(AssignError::Immutable) => Err(RuntimeError::new(
+                        name,
+                        &format!("Cannot assign to immutable binding '{}'.", name.lexeme),
+                    )),
+                }
+            }
         }
-
-        // TODO: placeholders until Environment lands
-        Expr::Variable(name) | Expr::Assign { name, .. } => Err(RuntimeError::new(
-            name,
-            "Variables and assignment are not evaluated yet.",
-        )),
     }
 }
 
