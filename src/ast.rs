@@ -41,6 +41,13 @@ pub enum Expr {
         name: Token,
         value: Box<Expr>,
     },
+
+    // short-circuiting `and` / `or` expression that returns the deciding operand value
+    Logical {
+        left: Box<Expr>,
+        operator: Token,
+        right: Box<Expr>,
+    },
 }
 
 // represents executable statements, separate from value-producing expressions
@@ -61,6 +68,19 @@ pub enum Stmt {
 
     // groups declarations and statements inside a nested `{ ... }` lexical scope
     Block(Vec<Stmt>),
+
+    // conditional execution with an optional `else` branch
+    If {
+        condition: Expr,
+        then_branch: Box<Stmt>,
+        else_branch: Option<Box<Stmt>>,
+    },
+
+    // executes `body` repeatedly while `condition` evaluates to a truthy value
+    While {
+        condition: Expr,
+        body: Box<Stmt>,
+    },
 }
 
 // one statement per line, so --parse output stays readable
@@ -96,6 +116,9 @@ impl fmt::Display for Expr {
             Expr::Assign { name, value } => {
                 write!(f, "(= {} {})", name.lexeme, value)
             }
+            Expr::Logical { left, operator, right } => {
+                write!(f, "({} {} {})", operator.lexeme, left, right)
+            }
         }
     }
 }
@@ -120,6 +143,13 @@ impl fmt::Display for Stmt {
                     write!(f, " {}", stmt)?;
                 }
                 write!(f, ")")
+            }
+            Stmt::If { condition, then_branch, else_branch } => match else_branch {
+                Some(else_stmt) => write!(f, "(if {} {} {})", condition, then_branch, else_stmt),
+                None => write!(f, "(if {} {})", condition, then_branch),
+            },
+            Stmt::While { condition, body } => {
+                write!(f, "(while {} {})", condition, body)
             }
         }
     }
