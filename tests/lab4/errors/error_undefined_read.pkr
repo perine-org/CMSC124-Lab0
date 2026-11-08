@@ -1,0 +1,1 @@
+show y;   !! expect runtime error: Undefined variable 'y'.
