@@ -41,6 +41,14 @@ pub enum Expr {
         name: Token,
         value: Box<Expr>,
     },
+
+    // calls whatever the callee expression evaluates to; `paren` is the ')' kept so
+    // call errors can report a line number
+    Call {
+        callee: Box<Expr>,
+        paren: Token,
+        arguments: Vec<Expr>,
+    },
 }
 
 // represents executable statements, separate from value-producing expressions
@@ -61,6 +69,13 @@ pub enum Stmt {
 
     // groups declarations and statements inside a nested `{ ... }` lexical scope
     Block(Vec<Stmt>),
+
+    // declares a function: its name, parameter names, and body statements
+    Function {
+        name: Token,
+        params: Vec<Token>,
+        body: Vec<Stmt>,
+    },
 }
 
 // one statement per line, so --parse output stays readable
@@ -96,6 +111,13 @@ impl fmt::Display for Expr {
             Expr::Assign { name, value } => {
                 write!(f, "(= {} {})", name.lexeme, value)
             }
+            Expr::Call { callee, arguments, .. } => {
+                write!(f, "(call {}", callee)?;
+                for arg in arguments {
+                    write!(f, " {}", arg)?;
+                }
+                write!(f, ")")
+            }
         }
     }
 }
@@ -120,6 +142,14 @@ impl fmt::Display for Stmt {
                     write!(f, " {}", stmt)?;
                 }
                 write!(f, ")")
+            }
+            Stmt::Function { name, params, body } => {
+                let names: Vec<&str> = params.iter().map(|p| p.lexeme.as_str()).collect();
+                write!(f, "(draw {} ({}) (block", name.lexeme, names.join(" "))?;
+                for stmt in body {
+                    write!(f, " {}", stmt)?;
+                }
+                write!(f, "))")
             }
         }
     }
