@@ -1,0 +1,1 @@
+draw hello() { show "hi"; } hello();   !! expect: hi
