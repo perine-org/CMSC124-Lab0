@@ -1,0 +1,37 @@
+!! Simple student budget tracker
+!! Shows immutable `deal`, mutable `set`, assignment `=`, and nested `{ }` scopes
+
+deal allowance = 1000;
+set balance = allowance;
+set label = "Monthly Summary";
+
+show label;
+show balance;
+
+!! First block: food expenses
+{
+    !! shadows outer `label` inside this block only
+    deal label = "Food Expense";
+    set lunch = 150;
+    set coffee = 80;
+
+    !! updates the outer `balance` variable
+    balance = balance - (lunch + coffee);
+
+    show label;
+    show balance;
+
+    !! Nested block: school supplies
+    {
+        deal label = "School Supplies";
+        set notebook = 70;
+        balance = balance - notebook;
+
+        show label;
+        show balance;
+    }
+}
+
+!! Outer `label` is still "Monthly Summary", while `balance` kept the updates (700)
+show label;
+show balance;

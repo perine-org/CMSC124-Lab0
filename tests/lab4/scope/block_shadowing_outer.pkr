@@ -1,0 +1,1 @@
+set card = "outer"; { set card = "inner"; } show card;   !! expect: outer

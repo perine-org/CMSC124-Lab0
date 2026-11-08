@@ -1,0 +1,1 @@
+deal ace = 11; { set ace = 1; } show ace;   !! expect: 11
