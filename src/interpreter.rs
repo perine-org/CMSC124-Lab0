@@ -73,6 +73,20 @@ impl Interpreter {
             }
             // a block gets its own scope; execute_block restores the old one afterward
             Stmt::Block(statements) => self.execute_block(statements),
+            Stmt::If { condition, then_branch, else_branch } => {
+                if self.eval(condition)?.is_truthy() {
+                    self.execute(then_branch)?;
+                } else if let Some(else_stmt) = else_branch {
+                    self.execute(else_stmt)?;
+                }
+                Ok(())
+            }
+            Stmt::While { condition, body } => {
+                while self.eval(condition)?.is_truthy() {
+                    self.execute(body)?;
+                }
+                Ok(())
+            }
         }
     }
 
@@ -151,6 +165,27 @@ impl Interpreter {
                         &format!("Cannot assign to immutable binding '{}'.", name.lexeme),
                     )),
                 }
+            }
+
+            // `and` / `or`: stops early as soon as the answer is known and returns that value
+            Expr::Logical { left, operator, right } => {
+                let left_val = self.eval(left)?;
+                match operator.token_type {
+                    TokenType::Or => {
+                        if left_val.is_truthy() {
+                            return Ok(left_val);
+                        }
+                    }
+                    TokenType::And => {
+                        if !left_val.is_truthy() {
+                            return Ok(left_val);
+                        }
+                    }
+                    _ => {
+                        return Err(RuntimeError::new(operator, "Unknown logical operator."));
+                    }
+                }
+                self.eval(right)
             }
         }
     }

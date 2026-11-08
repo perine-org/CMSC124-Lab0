@@ -1,0 +1,24 @@
+!! TODO: For template purposes only; syntax/keywords will change once we decide on our final programming language ideas.
+!! Tests `if`, `else`, `else if`, nested `if`s, and making sure `else` pairs with the closest `if`
+set score = 85;
+if (score >= 90) {
+    show "A";
+} else if (score >= 80) {
+    show "B";          !! expect: B
+} else {
+    show "C";
+}
+
+!! False condition goes to the else branch
+if (score < 50) {
+    show "fail";
+} else {
+    show "pass";       !! expect: pass
+}
+
+!! Nested `if`: `else` attaches to the inner `if (false)`, not the outer `if (true)`
+if (true)
+    if (false)
+        show "inner then";
+    else
+        show "else paired with inner if"; !! expect: else paired with inner if
