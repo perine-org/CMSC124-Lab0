@@ -1,0 +1,1 @@
+{ set x = 1; } show x;   !! expect runtime error: Undefined variable 'x'.

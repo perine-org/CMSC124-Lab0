@@ -1,0 +1,1 @@
+deal x = 10; show x + 1; !! expect: 11
