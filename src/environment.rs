@@ -26,7 +26,7 @@ impl Environment {
         Environment { values: HashMap::new(), enclosing: None }
     }
 
-    #[allow(dead_code)]
+    // makes a child scope whose lookups fall back to `enclosing` (used by blocks, and by lab 5 closures)
     pub fn with_enclosing(enclosing: Rc<RefCell<Environment>>) -> Self {
         Environment { values: HashMap::new(), enclosing: Some(enclosing) }
     }

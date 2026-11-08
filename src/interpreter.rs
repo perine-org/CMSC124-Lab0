@@ -71,9 +71,28 @@ impl Interpreter {
                 self.env.borrow_mut().define(&name.lexeme, value, *mutable);
                 Ok(())
             }
-            // TODO: placeholder until execute_block lands exists
-            Stmt::Block(_) => Ok(()),
+            // a block gets its own scope; execute_block restores the old one afterward
+            Stmt::Block(statements) => self.execute_block(statements),
         }
+    }
+
+    // runs statements in a new child scope, then always goes back to the old scope.
+    // the restore happens even if a statement fails, so a runtime error inside { ... }
+    // can't leave the REPL stuck in a dead block scope
+    fn execute_block(&mut self, statements: &[Stmt]) -> Result<(), RuntimeError> {
+        let previous = Rc::clone(&self.env);
+        self.env = Rc::new(RefCell::new(Environment::with_enclosing(Rc::clone(&previous))));
+
+        let mut result = Ok(());
+        for stmt in statements {
+            if let Err(err) = self.execute(stmt) {
+                result = Err(err);
+                break; // no `?` here: it would return before the scope is restored below
+            }
+        }
+
+        self.env = previous; // restore before returning, success or error
+        result
     }
 
     // evaluation of the expression from the inside out
