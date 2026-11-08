@@ -69,12 +69,40 @@ impl Parser {
         })
     }
 
-    // * <statement> ::= <show_stmt> | <expr_stmt>
+    // * <statement> ::= <show_stmt> | <block> | <expr_stmt>
     fn statement(&mut self) -> Result<Stmt, ParseError> {
         if self.match_types(&[TokenType::Show]) {
             return self.show_statement();
         }
+        // an opening '{' starts a nested block scope; consume it and parse until '}'
+        if self.match_types(&[TokenType::LeftBrace]) {
+            return Ok(Stmt::Block(self.block()?));
+        }
         self.expr_statement()
+    }
+
+    // * <block> ::= "{" <declaration>* "}"
+    // collects declarations and statements inside braces so blocks can nest to any depth
+    fn block(&mut self) -> Result<Vec<Stmt>, ParseError> {
+        let mut statements = Vec::new();
+
+        // keep parsing inner declarations until we see the closing '}' or hit EOF
+        while !self.check(&TokenType::RightBrace) && !self.is_at_end() {
+            match self.declaration() {
+                Ok(stmt) => statements.push(stmt),
+                Err(_) => {
+                    // only synchronize if the next token isn't already the closing '}',
+                    // so a missing ';' right before '}' doesn't eat the block's closing brace
+                    if !self.check(&TokenType::RightBrace) {
+                        self.synchronize();
+                    }
+                }
+            }
+        }
+
+        // report an unclosed block if we hit EOF without finding '}'
+        self.consume(TokenType::RightBrace, "Expect '}' after block.")?;
+        Ok(statements)
     }
 
     // * <show_stmt> ::= "show" <expression> ";"
@@ -274,15 +302,35 @@ impl Parser {
         ParseError
     }
 
-    /// Error recovery: discards tokens up to and including the next ';', so
-    /// parsing resumes at the start of the next statement. It always consumes
-    /// at least one token unless already at Eof, so it can't loop forever.
+    /// Error recovery: discards tokens until a statement or declaration boundary.
+    /// Always advances at least one token first so malformed tokens (like a stray '}')
+    /// can never cause an infinite loop.
     fn synchronize(&mut self) {
+        // always consume at least one token so we never get stuck on a bad token (15s timeout)
+        self.advance();
+
         while !self.is_at_end() {
-            if self.peek().token_type == TokenType::Semicolon {
-                self.advance();
+            // stop right after consuming a ';' since the next token starts a new statement
+            if self.previous().token_type == TokenType::Semicolon {
                 return;
             }
+
+            // or stop right before a keyword or brace that can begin or close a statement/block
+            match self.peek().token_type {
+                TokenType::Set
+                | TokenType::Deal
+                | TokenType::Show
+                | TokenType::LeftBrace
+                | TokenType::RightBrace
+                | TokenType::Call
+                | TokenType::Flush
+                | TokenType::Fold
+                | TokenType::Bet
+                | TokenType::Bust
+                | TokenType::Round => return,
+                _ => {}
+            }
+
             self.advance();
         }
     }
