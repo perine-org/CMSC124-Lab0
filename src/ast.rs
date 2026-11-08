@@ -58,6 +58,9 @@ pub enum Stmt {
         initializer: Option<Expr>,
         mutable: bool,
     },
+
+    // groups declarations and statements inside a nested `{ ... }` lexical scope
+    Block(Vec<Stmt>),
 }
 
 // one statement per line, so --parse output stays readable
@@ -110,6 +113,13 @@ impl fmt::Display for Stmt {
                     Some(expr) => write!(f, "({} {} {})", keyword, name.lexeme, expr),
                     None => write!(f, "({} {})", keyword, name.lexeme),
                 }
+            }
+            Stmt::Block(statements) => {
+                write!(f, "(block")?;
+                for stmt in statements {
+                    write!(f, " {}", stmt)?;
+                }
+                write!(f, ")")
             }
         }
     }
