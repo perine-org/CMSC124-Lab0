@@ -71,6 +71,8 @@ impl Interpreter {
                 self.env.borrow_mut().define(&name.lexeme, value, *mutable);
                 Ok(())
             }
+            // TODO: placeholder until execute_block lands exists
+            Stmt::Block(_) => Ok(()),
         }
     }
 
