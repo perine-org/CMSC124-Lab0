@@ -194,10 +194,10 @@ Only `false` and `nil` are falsy. Everything else is truthy, including `0`, `0.0
 
 ### Scope and bindings
 
-- Redeclaration in the same scope: [allowed or an error]
-- Uninitialized variable holds: [value]
-- Shadowing: [behavior]
-- Undefined name: [static error with exit 65, or runtime error with exit 70]
+- Redeclaration in the same scope: allowed. The new binding replaces the old one, so `set a = 1; set a = 2;` leaves `a` as `2`. This also applies to `deal`, so a name can be redeclared as `set` or `deal`.
+- Uninitialized variable holds: `nil`. `set a;` creates `a` with no value, and `show a;` prints `nil`. A `deal` must have an initializer, and omitting it is a syntax error (exit 65).
+- Shadowing: a `set` or `deal` inside a `{ }` block creates a new variable that hides the outer one only inside that block. The outer variable is unchanged and visible again when the block ends. Assignment (`=`) is different: it updates the nearest existing variable, so inside a block it can change an outer one.
+- Undefined name: runtime error with exit 70, `Undefined variable 'x'.` It applies to reading and to assigning, and it is found when the line runs, not at parse time.
 
 ### Control flow and functions
 
