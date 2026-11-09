@@ -1,0 +1,3 @@
+draw say(n) { show n; }
+say(1);   !! expect: 1
+say(2);   !! expect: 2

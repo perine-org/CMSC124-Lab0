@@ -33,8 +33,11 @@ impl Parser {
         (Program { statements }, self.had_error)
     }
 
-    // * <declaration> ::= <set_decl> | <deal_decl> | <statement>
+    // * <declaration> ::= <fun_decl> | <set_decl> | <deal_decl> | <statement>
     fn declaration(&mut self) -> Result<Stmt, ParseError> {
+        if self.match_types(&[TokenType::Draw]) {
+            return self.function_declaration();
+        }
         if self.match_types(&[TokenType::Set]) {
             return self.var_declaration(true);
         }
@@ -67,6 +70,28 @@ impl Parser {
             initializer,
             mutable,
         })
+    }
+
+    // * <fun_decl>   ::= "draw" IDENTIFIER "(" <parameters>? ")" <block>
+    // * <parameters> ::= IDENTIFIER ( "," IDENTIFIER )*
+    fn function_declaration(&mut self) -> Result<Stmt, ParseError> {
+        let name = self.consume(TokenType::Identifier, "Expect function name.")?;
+        self.consume(TokenType::LeftParen, "Expect '(' after function name.")?;
+
+        let mut params = Vec::new();
+        if !self.check(&TokenType::RightParen) {
+            loop {
+                params.push(self.consume(TokenType::Identifier, "Expect parameter name.")?);
+                if !self.match_types(&[TokenType::Comma]) {
+                    break;
+                }
+            }
+        }
+        self.consume(TokenType::RightParen, "Expect ')' after parameters.")?;
+
+        self.consume(TokenType::LeftBrace, "Expect '{' before function body.")?;
+        let body = self.block()?;
+        Ok(Stmt::Function { name, params, body })
     }
 
     // * <statement> ::= <show_stmt> | <block> | <expr_stmt>
@@ -207,7 +232,7 @@ impl Parser {
         Ok(expr)
     }
 
-    // *GRAMMAR RULE: <unary> ::= ( "not" | "-" ) <unary> | <primary>
+    // *GRAMMAR RULE: <unary> ::= ( "not" | "-" ) <unary> | <call>
     // calls itself recursively to handle prefix signs and allow chained operators like --5 or not not true
     fn unary(&mut self) -> Result<Expr, ParseError> {
         if self.match_types(&[TokenType::Not, TokenType::Minus]) {
@@ -216,7 +241,33 @@ impl Parser {
             return Ok(Expr::Unary { operator, right: Box::new(right) });
         }
 
-        self.primary()
+        self.call()
+    }
+
+    // *GRAMMAR RULE: <call> ::= <primary> ( "(" <arguments>? ")" )*
+    // a call is a pair of parentheses applied to whatever expression came before it,
+    // so f(1)(2) and (g)(1) work with no extra rules
+    fn call(&mut self) -> Result<Expr, ParseError> {
+        let mut expr = self.primary()?;
+        while self.match_types(&[TokenType::LeftParen]) {
+            expr = self.finish_call(expr)?;
+        }
+        Ok(expr)
+    }
+
+    // *GRAMMAR RULE: <arguments> ::= <expression> ( "," <expression> )*
+    fn finish_call(&mut self, callee: Expr) -> Result<Expr, ParseError> {
+        let mut arguments = Vec::new();
+        if !self.check(&TokenType::RightParen) {
+            loop {
+                arguments.push(self.parse_expression()?);
+                if !self.match_types(&[TokenType::Comma]) {
+                    break;
+                }
+            }
+        }
+        let paren = self.consume(TokenType::RightParen, "Expect ')' after arguments.")?;
+        Ok(Expr::Call { callee: Box::new(callee), paren, arguments })
     }
 
     // *GRAMMAR RULE: <primary> ::= NUMBER | STRING | "true" | "false" | IDENTIFIER | "(" <expression> ")"
@@ -319,6 +370,7 @@ impl Parser {
             match self.peek().token_type {
                 TokenType::Set
                 | TokenType::Deal
+                | TokenType::Draw
                 | TokenType::Show
                 | TokenType::LeftBrace
                 | TokenType::RightBrace
