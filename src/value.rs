@@ -1,5 +1,7 @@
+use crate::callable::Callable;
 use crate::token::Literal;
 use std::fmt;
+use std::rc::Rc;
 
 
 // I keep the 'nil spelling here so it can print the same way.
@@ -7,12 +9,42 @@ use std::fmt;
 pub const NIL: &str = "nil";
 
 // represents the values that expressions can produce during evaluation
-#[derive(Debug, Clone, PartialEq)]
+// Debug and PartialEq, a function holds an environment and
+// code, which can't be derived or compared by content
+#[derive(Clone)]
 pub enum Value {
     Number(f64),
     Str(String),
     Bool(bool),
     Nil,
+    // functions are ordinary values, so they can be stored, passed and returned
+    Function(Rc<dyn Callable>),
+}
+
+impl fmt::Debug for Value {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Value::Number(n) => write!(f, "Number({:?})", n),
+            Value::Str(s) => write!(f, "Str({:?})", s),
+            Value::Bool(b) => write!(f, "Bool({:?})", b),
+            Value::Nil => write!(f, "Nil"),
+            Value::Function(func) => write!(f, "Function({})", func.name()),
+        }
+    }
+}
+
+impl PartialEq for Value {
+    fn eq(&self, other: &Value) -> bool {
+        match (self, other) {
+            (Value::Number(a), Value::Number(b)) => a == b,
+            (Value::Str(a), Value::Str(b)) => a == b,
+            (Value::Bool(a), Value::Bool(b)) => a == b,
+            (Value::Nil, Value::Nil) => true,
+            // two function values are equal only if they are the very same function object
+            (Value::Function(a), Value::Function(b)) => Rc::ptr_eq(a, b),
+            _ => false,
+        }
+    }
 }
 
 impl Value {
@@ -35,6 +67,7 @@ impl Value {
             Value::Bool(b) => *b,         // true is truthy, false is falsey
             Value::Number(_) => true,     // every number is truthy, even 0
             Value::Str(_) => true,        // every string is truthy, even ""
+            Value::Function(_) => true,   // functions are truthy
         }
     }
 
@@ -52,6 +85,7 @@ impl fmt::Display for Value{
             Value::Str(s) => write!(f, "{}", s),
             Value::Bool(b) => write!(f, "{}", b),
             Value::Nil => write!(f, "{}", NIL),
+            Value::Function(func) => write!(f, "<fn {}>", func.name()),
         }
     }
 }
@@ -69,6 +103,3 @@ fn format_number(n: f64) -> String {
         format!("{}", n)
     }
 }
-
-
-

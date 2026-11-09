@@ -1,4 +1,5 @@
 use crate::ast::{Expr, Program, Stmt};
+use crate::callable::UserFunction;
 use crate::environment::{AssignError, Environment};
 use crate::token::{Token, TokenType};
 use crate::value::Value;
@@ -85,17 +86,39 @@ impl Interpreter {
                 while self.eval(condition)?.is_truthy() {
                     self.execute(body)?;
                 }
+            // declaring a function binds its name to a function value that remembers the
+            // scope it was declared in. the name is immutable, like a `deal`
+            Stmt::Function { name, params, body } => {
+                let function = UserFunction::new(
+                    name.lexeme.clone(),
+                    params.clone(),
+                    body.clone(),
+                    Rc::clone(&self.env),
+                );
+                self.env
+                    .borrow_mut()
+                    .define(&name.lexeme, Value::Function(Rc::new(function)), false);
                 Ok(())
             }
         }
     }
 
-    // runs statements in a new child scope, then always goes back to the old scope.
-    // the restore happens even if a statement fails, so a runtime error inside { ... }
-    // can't leave the REPL stuck in a dead block scope
+    // a plain { ... } block: runs in a new child scope of the current one
     fn execute_block(&mut self, statements: &[Stmt]) -> Result<(), RuntimeError> {
-        let previous = Rc::clone(&self.env);
-        self.env = Rc::new(RefCell::new(Environment::with_enclosing(Rc::clone(&previous))));
+        let child = Rc::new(RefCell::new(Environment::with_enclosing(Rc::clone(&self.env))));
+        self.execute_in(statements, child)
+    }
+
+    // runs statements with `env` as the active scope, then always goes back to the old scope.
+    // the restore happens even if a statement fails, so a runtime error inside { ... }
+    // can't leave the REPL stuck in a dead block scope. function calls use this too,
+    // passing in the call's own environment
+    pub fn execute_in(
+        &mut self,
+        statements: &[Stmt],
+        env: Rc<RefCell<Environment>>,
+    ) -> Result<(), RuntimeError> {
+        let previous = std::mem::replace(&mut self.env, env);
 
         let mut result = Ok(());
         for stmt in statements {
@@ -147,6 +170,34 @@ impl Interpreter {
                         name,
                         &format!("Undefined variable '{}'.", name.lexeme),
                     )),
+                }
+            }
+
+            // evaluate the callee, then the arguments left to right, then check the call.
+            // arity is checked here once, so every kind of callable gets the same check
+            Expr::Call { callee, paren, arguments } => {
+                let callee = self.eval(callee)?;
+
+                let mut args = Vec::new();
+                for argument in arguments {
+                    args.push(self.eval(argument)?);
+                }
+
+                match callee {
+                    Value::Function(function) => {
+                        if args.len() != function.arity() {
+                            return Err(RuntimeError::new(
+                                paren,
+                                &format!(
+                                    "Expected {} arguments but got {}.",
+                                    function.arity(),
+                                    args.len()
+                                ),
+                            ));
+                        }
+                        function.call(self, args)
+                    }
+                    _ => Err(RuntimeError::new(paren, "Can only call functions.")),
                 }
             }
 

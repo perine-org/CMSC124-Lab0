@@ -6,6 +6,7 @@ mod repl;
 mod value;
 mod interpreter;
 mod environment;
+mod callable;
 
 use ast::Program;
 use scanner::Scanner;
