@@ -42,6 +42,11 @@ pub enum TokenType {
     Draw,
     Raise,
     Show,
+    // TODO: Added for template purposes in Lab 5; will change once we decide on our final programming language ideas.
+    If,
+    Else,
+    While,
+    For,
 
     True,
     False,
@@ -150,8 +155,12 @@ fn format_type(t: &TokenType) -> &'static str {
         TokenType::Draw => "DRAW",
         TokenType::Raise => "RAISE",
         TokenType::Show => "SHOW",
+        TokenType::If => "IF",
+        TokenType::Else => "ELSE",
+        TokenType::While => "WHILE",
+        TokenType::For => "FOR",
         TokenType::True => "TRUE",
-TokenType::False => "FALSE",
+        TokenType::False => "FALSE",
         TokenType::Eof => "EOF",
     }
 }

@@ -1,5 +1,5 @@
 use crate::ast::{Expr, Program, Stmt};
-use crate::token::{Token, TokenType};
+use crate::token::{Literal, Token, TokenType};
 
 #[derive(Debug)]
 // empty error type so functions can use '?' to
@@ -72,6 +72,8 @@ impl Parser {
         })
     }
 
+    // * <statement> ::= <if_stmt> | <while_stmt> | <for_stmt> | <show_stmt> | <block> | <expr_stmt>
+    // TODO: Control-flow keywords (if, else, while, for) are for template purposes in Lab 5 and will change once we decide on our final programming language ideas.
     // * <fun_decl>   ::= "draw" IDENTIFIER "(" <parameters>? ")" <block>
     // * <parameters> ::= IDENTIFIER ( "," IDENTIFIER )*
     fn function_declaration(&mut self) -> Result<Stmt, ParseError> {
@@ -96,6 +98,15 @@ impl Parser {
 
     // * <statement> ::= <show_stmt> | <block> | <expr_stmt>
     fn statement(&mut self) -> Result<Stmt, ParseError> {
+        if self.match_types(&[TokenType::If]) {
+            return self.if_statement();
+        }
+        if self.match_types(&[TokenType::While]) {
+            return self.while_statement();
+        }
+        if self.match_types(&[TokenType::For]) {
+            return self.for_statement();
+        }
         if self.match_types(&[TokenType::Show]) {
             return self.show_statement();
         }
@@ -104,6 +115,88 @@ impl Parser {
             return Ok(Stmt::Block(self.block()?));
         }
         self.expr_statement()
+    }
+
+    // * <if_stmt> ::= "if" "(" <expression> ")" <statement> ( "else" <statement> )?
+    // matches `else` right away so it attaches to the closest `if`
+    fn if_statement(&mut self) -> Result<Stmt, ParseError> {
+        self.consume(TokenType::LeftParen, "Expect '(' after 'if'.")?;
+        let condition = self.parse_expression()?;
+        self.consume(TokenType::RightParen, "Expect ')' after if condition.")?;
+
+        let then_branch = Box::new(self.statement()?);
+        let else_branch = if self.match_types(&[TokenType::Else]) {
+            Some(Box::new(self.statement()?))
+        } else {
+            None
+        };
+
+        Ok(Stmt::If {
+            condition,
+            then_branch,
+            else_branch,
+        })
+    }
+
+    // * <while_stmt> ::= "while" "(" <expression> ")" <statement>
+    fn while_statement(&mut self) -> Result<Stmt, ParseError> {
+        self.consume(TokenType::LeftParen, "Expect '(' after 'while'.")?;
+        let condition = self.parse_expression()?;
+        self.consume(TokenType::RightParen, "Expect ')' after condition.")?;
+        let body = Box::new(self.statement()?);
+
+        Ok(Stmt::While { condition, body })
+    }
+
+    // * <for_stmt> ::= "for" "(" ( <set_decl> | <deal_decl> | <expr_stmt> | ";" ) <expression>? ";" <expression>? ")" <statement>
+    // turns a `for` loop into a `while` loop inside a block so the interpreter doesn't need extra `for` logic
+    fn for_statement(&mut self) -> Result<Stmt, ParseError> {
+        self.consume(TokenType::LeftParen, "Expect '(' after 'for'.")?;
+
+        // 1. starting part: can be empty `;`, a `set`/`deal` variable, or an expression
+        let initializer = if self.match_types(&[TokenType::Semicolon]) {
+            None
+        } else if self.match_types(&[TokenType::Set]) {
+            Some(self.var_declaration(true)?)
+        } else if self.match_types(&[TokenType::Deal]) {
+            Some(self.var_declaration(false)?)
+        } else {
+            Some(self.expr_statement()?)
+        };
+
+        // 2. condition: if left empty (like `for (;;)`), treat it as `true` so it loops forever
+        let condition = if self.check(&TokenType::Semicolon) {
+            Expr::Literal(Literal::Bool(true))
+        } else {
+            self.parse_expression()?
+        };
+        self.consume(TokenType::Semicolon, "Expect ';' after loop condition.")?;
+
+        // 3. step/update part: runs at the end of every loop turn if provided
+        let increment = if self.check(&TokenType::RightParen) {
+            None
+        } else {
+            Some(self.parse_expression()?)
+        };
+        self.consume(TokenType::RightParen, "Expect ')' after for clauses.")?;
+
+        // 4. build the `while` loop: put the step at the end of the body, then put the starting variable outside
+        let mut body = self.statement()?;
+
+        if let Some(inc) = increment {
+            body = Stmt::Block(vec![body, Stmt::Expression(inc)]);
+        }
+
+        let while_loop = Stmt::While {
+            condition,
+            body: Box::new(body),
+        };
+
+        if let Some(init) = initializer {
+            Ok(Stmt::Block(vec![init, while_loop]))
+        } else {
+            Ok(while_loop)
+        }
     }
 
     // * <block> ::= "{" <declaration>* "}"
@@ -155,10 +248,10 @@ impl Parser {
         self.assignment()
     }
 
-    // *GRAMMAR RULE: <assignment> ::= IDENTIFIER "=" <assignment> | <equality>
+    // *GRAMMAR RULE: <assignment> ::= IDENTIFIER "=" <assignment> | <logic_or>
     // parses the left side as a general expression first, then validates the L-value if '=' follows
     fn assignment(&mut self) -> Result<Expr, ParseError> {
-        let expr = self.equality()?;
+        let expr = self.logic_or()?;
 
         if self.match_types(&[TokenType::Assign]) {
             let equals = self.previous();
@@ -175,6 +268,36 @@ impl Parser {
             return Err(self.error(equals, "Invalid assignment target."));
         }
 
+        Ok(expr)
+    }
+
+    // *GRAMMAR RULE: <logic_or> ::= <logic_and> { "or" <logic_and> }
+    fn logic_or(&mut self) -> Result<Expr, ParseError> {
+        let mut expr = self.logic_and()?;
+        while self.match_types(&[TokenType::Or]) {
+            let operator = self.previous();
+            let right = self.logic_and()?;
+            expr = Expr::Logical {
+                left: Box::new(expr),
+                operator,
+                right: Box::new(right),
+            };
+        }
+        Ok(expr)
+    }
+
+    // *GRAMMAR RULE: <logic_and> ::= <equality> { "and" <equality> }
+    fn logic_and(&mut self) -> Result<Expr, ParseError> {
+        let mut expr = self.equality()?;
+        while self.match_types(&[TokenType::And]) {
+            let operator = self.previous();
+            let right = self.equality()?;
+            expr = Expr::Logical {
+                left: Box::new(expr),
+                operator,
+                right: Box::new(right),
+            };
+        }
         Ok(expr)
     }
 
@@ -372,6 +495,9 @@ impl Parser {
                 | TokenType::Deal
                 | TokenType::Draw
                 | TokenType::Show
+                | TokenType::If
+                | TokenType::While
+                | TokenType::For
                 | TokenType::LeftBrace
                 | TokenType::RightBrace
                 | TokenType::Call

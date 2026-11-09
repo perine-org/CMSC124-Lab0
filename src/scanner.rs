@@ -134,6 +134,11 @@ impl Scanner {
             "draw" => TokenType::Draw,
             "raise" => TokenType::Raise,
             "show" => TokenType::Show,
+            // TODO: Added for template purposes in Lab 5; will change once we decide on our final programming language idea
+            "if" => TokenType::If,
+            "else" => TokenType::Else,
+            "while" => TokenType::While,
+            "for" => TokenType::For,
             "true" => TokenType::True,
             "false" => TokenType::False,
             "and" => TokenType::And,     

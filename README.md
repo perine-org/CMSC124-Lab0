@@ -16,17 +16,17 @@ Despite the poker theme, the language focuses on **deterministic logic and decis
 - Host language: Rust
 - Version metadata: 1.98.0
 - Build: `./build.sh`
-- [Anything a fresh clone needs to know.]
+- Fresh clone setup: Run `chmod +x build.sh run` (on Linux/macOS/WSL/Git Bash), then run `./build.sh` to compile the release binary under `target/release/`.
 
 ## Running it
 
 | Command | What it does |
 | --- | --- |
-| `./run <file>` | [Executes a program. Available from Lab 4.] |
-| `./run --tokenize <file>` | [Prints the token stream.] |
-| `./run --parse <file>` | [Prints the parsed tree.] |
-| `./run --eval <file>` | [Evaluates each expression in the file and prints its value, one per line.] |
-| `./run` | [Starts the REPL.] |
+| `./run <file>` | Executes a PokerScript program file. |
+| `./run --tokenize <file>` | Prints the token stream, one token per line. |
+| `./run --parse <file>` | Prints the parsed AST in prefix notation. |
+| `./run --eval <file>` | Evaluates each expression in the file and prints its value, one per line. |
+| `./run` | Starts the interactive REPL session. |
 
 Exit codes: `0` on success,  `64` for incorrect command usage (wrong flags or number of arguments) . `65` when input is invalid (lexical or any syntax error). `70` when a runtime error happens while evaluating (file mode)
 
@@ -48,6 +48,10 @@ Exit codes: `0` on success,  `64` for incorrect command usage (wrong flags or nu
 | `bet` | Try |
 | `bust` | Catch / exceptions |
 | `round` | For loop |
+| `if` | Conditional statement (`if`) |
+| `else` | Alternative branch (`else`) |
+| `while` | While loop |
+| `for` | For loop |
 | `show` | Print statement |
 | `true` | Boolean literal (true) |
 | `false` | Boolean literal (false) |
@@ -59,24 +63,24 @@ Exit codes: `0` on success,  `64` for incorrect command usage (wrong flags or nu
 
 | Operator | Category | Operands | Associativity | Precedence |
 | --- | --- | --- | --- | --- |
-| `+` | arithmetic | binary | left | 4 |
-| `-` | arithmetic | binary | left | 4 |
-| `*` | arithmetic | binary | left | 5 |
-| `/` | arithmetic | binary | left | 5 |
-| `%` | arithmetic | binary | left | 5 |
-| `<` | comparison | binary | left | 3 |
-| `<=` | comparison | binary | left | 3 |
-| `>` | comparison | binary | left | 3 |
-| `>=` | comparison | binary | left | 3 |
-| `==` | comparison | binary | left | 2 |
-| `!=` | comparison | binary | left | 2 |
+| `+` | arithmetic | binary | left | 6 |
+| `-` | arithmetic | binary | left | 6 |
+| `*` | arithmetic | binary | left | 7 |
+| `/` | arithmetic | binary | left | 7 |
+| `%` | arithmetic | binary | left | 7 |
+| `<` | comparison | binary | left | 5 |
+| `<=` | comparison | binary | left | 5 |
+| `>` | comparison | binary | left | 5 |
+| `>=` | comparison | binary | left | 5 |
+| `==` | comparison | binary | left | 4 |
+| `!=` | comparison | binary | left | 4 |
+| `and` | logical | binary | left | 3 |
+| `or` | logical | binary | left | 2 |
 | `=` | assignment | binary | right | 1 |
-| `and` | logical | binary | Not defined | Not defined |
-| `or` | logical | binary | Not defined | Not defined |
-| `not` | logical | unary | right | 6 |
-| `-` (unary) | arithmetic | unary | right | 6 |
+| `not` | logical | unary | right | 8 |
+| `-` (unary) | arithmetic | unary | right | 8 |
 
-**Note:** Precedence and associativity for `+`, `-`, `*`, `/`, `%`, comparison and equality come from the grammar in parser.rs. `not` is unary, at the same level as unary `-` (right-associative, binds tighter than `*`). `=`, `and` and `or` are scanned but not parsed yet.
+**Note:** Precedence and associativity for `=`, `or`, `and`, `+`, `-`, `*`, `/`, `%`, comparison, equality, and unary `not`/`-` come from the grammar in `parser.rs` (higher numbers bind tighter: `8` is highest, `1` is lowest).
 
 ### Literals
 
@@ -92,24 +96,24 @@ Exit codes: `0` on success,  `64` for incorrect command usage (wrong flags or nu
 - Start characters: Alphabetic characters (`a-z`, `A-Z`, and other alphabetic Unicode characters) or `~`
 - Continue characters: Alphanumeric characters or `~`
 - Case-sensitive: Yes
-- Reserved words: `set`, `deal`, `call`, `flush`, `fold`, `bet`, `bust`, `round`, `bluff`, `draw`, `raise`, `show`, `true`, `false`, `and`, `or`, `not`
+- Reserved words: `set`, `deal`, `call`, `flush`, `fold`, `bet`, `bust`, `round`, `bluff`, `draw`, `raise`, `show`, `if`, `else`, `while`, `for`, `true`, `false`, `and`, `or`, `not`
 - No identifier length limit is defined in the Scanner.
 - A word matching one of the reserved words is tokenized as its corresponding keyword rather than as an `IDENTIFIER`.
 - Identifiers may contain letters, numbers, and `~`, but they cannot begin with a number.
-- The language's `IDENTIFIER` token is distinct from its reserved keyword tokens. :contentReference[oaicite:3]{index=3}
+- The language's `IDENTIFIER` token is distinct from its reserved keyword tokens.
 
 ### Comments
 
 - Line comments: !!
 - Block comments: !!!
-- Nesting: [supported or not]
+- Nesting: Not supported (the first closing `!!!` ends the block comment).
 - comment_prefix in tests/lab*/manifest.json is set to !!
 
 ## Whitespace and termination
 
 - Whitespace significant: **No.** Spaces, carriage returns (`\r`), and tabs (`\t`) are ignored by the Scanner. Newlines are also not treated as tokens, but they increment the line counter for error reporting.
-- Statement terminator: - Statement terminator: `;`. Every expression ends with `;`. A missing one gives `Expect ';' after expression.`, and the parser also uses `;` as its recovery point after an error.
-- Block delimiters: `{` and `}` are recognized as `LEFT_BRACE` and `RIGHT_BRACE`, but they are not currently used by the Parser grammar.
+- Statement terminator: `;` (`SEMICOLON`). Variable declarations (`set`, `deal`), `show` statements, and expression statements end with `;`; `{ ... }` block statements do not require a trailing `;`.
+- Block delimiters: `{` and `}` (`LEFT_BRACE` and `RIGHT_BRACE`) enclose nested lexical block scopes (`{ declaration* }`).
 - Grouping delimiters: `(` and `)`. Parentheses are used to group expressions in the grammar: `"(" expression ")"`.
 - End of input: The Scanner automatically adds an `EOF` token after scanning the entire source.
 
@@ -129,13 +133,18 @@ program     → declaration* EOF
 declaration → setDecl | dealDecl | statement
 setDecl     → "set" IDENTIFIER ( "=" expression )? ";"
 dealDecl    → "deal" IDENTIFIER "=" expression ";"
-statement   → showStmt | exprStmt | block
+statement   → ifStmt | whileStmt | forStmt | showStmt | exprStmt | block
+ifStmt      → "if" "(" expression ")" statement ( "else" statement )?
+whileStmt   → "while" "(" expression ")" statement
+forStmt     → "for" "(" ( setDecl | dealDecl | exprStmt | ";" ) expression? ";" expression? ")" statement
 showStmt    → "show" expression ";"
 exprStmt    → expression ";"
 block       → "{" declaration* "}"
 
 expression  → assignment
-assignment  → IDENTIFIER "=" assignment | equality
+assignment  → IDENTIFIER "=" assignment | logic_or
+logic_or    → logic_and ( "or" logic_and )*
+logic_and   → equality ( "and" equality )*
 equality    → comparison ( ( "==" | "!=" ) comparison )*
 comparison  → term ( ( "<" | "<=" | ">" | ">=" ) term )*
 term        → factor ( ( "+" | "-" ) factor )*
@@ -151,11 +160,13 @@ primary     → NUMBER | STRING | "true" | "false" | IDENTIFIER | "(" expression
 ## Parse output format
 
 ```
-[one line of real --parse output, e.g. (+ 1.0 (* 2.0 3.0))]
+(+ 1.0 (* 2.0 3.0))
+(set spade 5.0)
+(block (deal ace 11.0) (show ace))
 ```
 
-- Groupings print as: [form]
-- Numbers print as: [form]
+- Groupings print as: `(group <expr>)`
+- Numbers print as: always with a decimal point (e.g. `5` prints as `5.0`, `3.14` prints as `3.14`)
 
 ## Semantics
 
@@ -201,8 +212,8 @@ Only `false` and `nil` are falsy. Everything else is truthy, including `0`, `0.0
 
 ### Control flow and functions
 
-- Logical operators return: [booleans, or the operand]
-- Dangling else binds to: [which if]
+- Logical operators return: the deciding operand value (short-circuiting: `or` returns the left operand if truthy, else evaluates and returns the right; `and` returns the left operand if falsy, else evaluates and returns the right)
+- Dangling else binds to: the nearest unmatched `if`
 - Closure capture of a loop variable: [per iteration, or shared]
 - Function with no return statement produces: [value]
 - Arity mismatch: [message and exit code]
