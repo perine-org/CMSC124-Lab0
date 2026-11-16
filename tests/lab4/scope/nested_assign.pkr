@@ -1,0 +1,1 @@
+set pot = 10; { set bet~1 = 20; { pot = pot + bet~1; } } show pot;   !! expect: 30

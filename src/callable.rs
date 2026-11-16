@@ -1,6 +1,6 @@
 use crate::ast::Stmt;
 use crate::environment::Environment;
-use crate::interpreter::{Interpreter, RuntimeError};
+use crate::interpreter::{Flow, Interpreter, RuntimeError};
 use crate::token::Token;
 use crate::value::Value;
 use std::cell::RefCell;
@@ -53,10 +53,12 @@ impl Callable for UserFunction {
             env.borrow_mut().define(&param.lexeme, arg, true);
         }
 
-        interpreter.execute_in(&self.body, env)?;
-
-        // no return statement yet (Week 2), so falling off the end produces nil
-        Ok(Value::Nil)
+        match interpreter.execute_in(&self.body, env)? {
+            // `flush` inside the function stopped the body and sent a value back here
+            Flow::Return(value) => Ok(value),
+            // reaching the end of the function without `flush` produces `nil`
+            Flow::Normal => Ok(Value::Nil),
+        }
     }
 
     fn name(&self) -> String {

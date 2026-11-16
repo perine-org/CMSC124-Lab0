@@ -1,0 +1,7 @@
+!! TODO: For template purposes only; syntax/keywords will change once we decide on our final programming language ideas.
+!! Tests that `and` and `or` return the value that decided the result, and `and` runs before `or`
+show false or "fallback";    !! expect: fallback
+show "first" or "second";    !! expect: first
+show true and 42;            !! expect: 42
+show false and 42;           !! expect: false
+show true or false and "x";  !! expect: true
