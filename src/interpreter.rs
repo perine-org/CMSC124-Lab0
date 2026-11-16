@@ -6,7 +6,7 @@ use crate::value::Value;
 use std::cell::RefCell;
 use std::rc::Rc;
 
-//  this is  when the code is valid, but the value causes a problem at runtime
+// this is for when the code is valid, but the value causes a problem at runtime
 // keeping the token to show where the error happened
 #[derive(Debug)]
 pub struct RuntimeError {
@@ -15,7 +15,8 @@ pub struct RuntimeError {
 }
 
 impl RuntimeError {
-    fn new(token: &Token, message: &str) -> Self {
+    // crate-visible so native functions can raise errors too
+    pub(crate) fn new(token: &Token, message: &str) -> Self {
         RuntimeError { token: token.clone(), message: message.to_string() }
     }
 
@@ -32,19 +33,28 @@ pub enum Flow {
     Return(Value),
 }
 
-// holds the evaluator's state. empty danay; week 2 will add enivormnetn
-// so file mode and the REPL can share one instance and variables persist.
-#[derive(Default)]
+// holds the evaluator's state. file mode and the REPL can share one instance
+// so variables persist. the global scope starts with the native functions defined.
 pub struct Interpreter {
     env: Rc<RefCell<Environment>>,
 }
 
+// Default must go through new(), otherwise the natives would be missing
+impl Default for Interpreter {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Interpreter {
     pub fn new() -> Self {
-        Interpreter { env: Rc::new(RefCell::new(Environment::new())) }
+        let globals = Rc::new(RefCell::new(Environment::new()));
+        // natives live in the global scope before any user code runs
+        crate::native::define_all(&mut globals.borrow_mut());
+        Interpreter { env: globals }
     }
 
-    // walks the whole program 
+    // walks the whole program
     // echo = true: bare expressions print their value (--eval and REPL)
     // echo = false: only `show` prints (plain ./run <file>)
     pub fn run(&mut self, program: &Program, echo: bool) -> Result<(), RuntimeError> {
@@ -81,7 +91,7 @@ impl Interpreter {
                 self.env.borrow_mut().define(&name.lexeme, value, *mutable);
                 Ok(Flow::Normal)
             }
-            // a block gets its own scope; execute_block restores the old one afterward
+            // a block gets its own scope; execute_in restores the old one afterward
             Stmt::Block(statements) => self.execute_block(statements),
             Stmt::If { condition, then_branch, else_branch } => {
                 if self.eval(condition)?.is_truthy() {
@@ -167,7 +177,7 @@ impl Interpreter {
             // the scanner already gave the value, so just convert it
             Expr::Literal(literal) => Ok(Value::from_literal(literal)),
 
-            // the parser already handled the parentheses, so I just evaluate what is inside
+            // the parser already handled the parentheses, so just evaluate what is inside
             Expr::Grouping { expression } => self.eval(expression),
 
             Expr::Unary { operator, right } => {
@@ -223,7 +233,14 @@ impl Interpreter {
                                 ),
                             ));
                         }
-                        function.call(self, args)
+                        // natives have no call-site token of their own, so give any error
+                        // they raise the line of this call's ')' instead of line 0
+                        function.call(self, args).map_err(|mut err| {
+                            if err.token.line == 0 {
+                                err.token.line = paren.line;
+                            }
+                            err
+                        })
                     }
                     _ => Err(RuntimeError::new(paren, "Can only call functions.")),
                 }
@@ -297,14 +314,14 @@ fn binary(operator: &Token, left: Value, right: Value) -> Result<Value, RuntimeE
         }
         TokenType::Modulo => {
             let (a, b) = nums(operator, &left, &right)?;
-            // check zero first so `%` gives my runtime error instead of `NaN`
+            // check zero first so `%` gives a runtime error instead of `NaN`
             if b == 0.0 {
                 return Err(RuntimeError::new(operator, "Modulo by zero."));
             }
             // keep the left operand's sign for the remainder
             Ok(Value::Number(a % b))
         }
-                
+
         // equality works on any pair of types; different types are simply not equal
         // (1 == "1" is false, not an error), so there is no type check here
         TokenType::Equal => Ok(Value::Bool(left.is_equal(&right))),
@@ -335,9 +352,8 @@ fn binary(operator: &Token, left: Value, right: Value) -> Result<Value, RuntimeE
     }
 }
 
-// I keep the number checks here so I can reuse the same rule.
-// I check the values after evaluation, not the expression tree.
-// shared type checks for operators that only accept numbers
+// shared type check for unary operators that only accept numbers.
+// values are checked after evaluation, not on the expression tree.
 fn num(operator: &Token, value: &Value) -> Result<f64, RuntimeError> {
     match value {
         Value::Number(n) => Ok(*n),
@@ -345,7 +361,7 @@ fn num(operator: &Token, value: &Value) -> Result<f64, RuntimeError> {
     }
 }
 
-// shared type checks for operators that only accept numbers
+// shared type check for binary operators that only accept numbers
 fn nums(operator: &Token, left: &Value, right: &Value) -> Result<(f64, f64), RuntimeError> {
     match (left, right) {
         (Value::Number(a), Value::Number(b)) => Ok((*a, *b)),

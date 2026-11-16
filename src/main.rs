@@ -7,6 +7,7 @@ mod value;
 mod interpreter;
 mod environment;
 mod callable;
+mod native;
 
 use ast::Program;
 use scanner::Scanner;
