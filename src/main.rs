@@ -115,7 +115,7 @@ fn run_program(path: &str) {
     let program = load_program(path);
     let mut interp = interpreter::Interpreter::new();
 
-    if let Err(err) = interp.run(&program, false) {
+    if let Err(err) = interp.run(&program, false) { // goes through each statement one by one
         err.report();            // stderr
         std::process::exit(70);  // runtime error
     }

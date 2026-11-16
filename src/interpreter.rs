@@ -80,8 +80,8 @@ impl Interpreter {
     // the restore happens even if a statement fails, so a runtime error inside { ... }
     // can't leave the REPL stuck in a dead block scope
     fn execute_block(&mut self, statements: &[Stmt]) -> Result<(), RuntimeError> {
-        let previous = Rc::clone(&self.env);
-        self.env = Rc::new(RefCell::new(Environment::with_enclosing(Rc::clone(&previous))));
+        let previous = Rc::clone(&self.env); // this remembers the outer scope 
+        self.env = Rc::new(RefCell::new(Environment::with_enclosing(Rc::clone(&previous)))); // switches to the new child
 
         let mut result = Ok(());
         for stmt in statements {
