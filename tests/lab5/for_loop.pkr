@@ -1,0 +1,12 @@
+!! TODO: For template purposes only; syntax/keywords will change once we decide on our final programming language ideas.
+!! Tests a `for` loop (turned into a block + `while` loop by the parser)
+set total = 0;
+for (set i = 1; i <= 4; i = i + 1) {
+    total = total + i;
+    show i;
+}
+!! expect: 1
+!! expect: 2
+!! expect: 3
+!! expect: 4
+show total; !! expect: 10

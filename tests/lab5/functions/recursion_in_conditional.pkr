@@ -1,0 +1,12 @@
+!! Interaction test: recursive countdown inside an `if / else` conditional using logical `and`
+draw sumEvenDownFrom(n) {
+    if (n <= 0) {
+        flush 0;
+    } else if (n % 2 == 0 and n > 0) {
+        flush n + sumEvenDownFrom(n - 1);
+    } else {
+        flush sumEvenDownFrom(n - 1);
+    }
+}
+
+show sumEvenDownFrom(6); !! expect: 12

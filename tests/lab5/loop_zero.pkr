@@ -1,0 +1,8 @@
+!! TODO: For template purposes only; syntax/keywords will change once we decide on our final programming language ideas.
+!! Tests a while loop whose condition is initially false so the body runs zero times
+set count = 0;
+while (false) {
+    count = count + 1;
+    show "should not run";
+}
+show count; !! expect: 0

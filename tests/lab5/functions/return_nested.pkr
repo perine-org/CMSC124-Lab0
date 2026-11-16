@@ -1,0 +1,14 @@
+!! Tests `flush` returning early from inside nested `while` and `if` blocks
+draw findTarget(target) {
+    set i = 0;
+    while (i < 10) {
+        if (i == target) {
+            flush "found";
+        }
+        i = i + 1;
+    }
+    flush "missing";
+}
+
+show findTarget(3);  !! expect: found
+show findTarget(99); !! expect: missing

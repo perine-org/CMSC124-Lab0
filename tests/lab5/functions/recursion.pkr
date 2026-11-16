@@ -1,0 +1,11 @@
+!! Tests recursive function calls (Fibonacci) with a small terminating input
+draw fib(n) {
+    if (n <= 1) {
+        flush n;
+    }
+    flush fib(n - 1) + fib(n - 2);
+}
+
+show fib(0); !! expect: 0
+show fib(1); !! expect: 1
+show fib(7); !! expect: 13

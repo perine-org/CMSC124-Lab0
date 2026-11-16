@@ -1,0 +1,4 @@
+!! TODO: For template purposes only; syntax/keywords will change once we decide on our final programming language ideas.
+!! Tests that `and` and `or` stop early and skip the right side (which would divide by zero if it ran)
+show false and (1 / 0); !! expect: false
+show true or (1 / 0);   !! expect: true

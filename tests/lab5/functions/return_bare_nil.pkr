@@ -1,0 +1,12 @@
+!! Tests that a bare `flush;` stops the function early and returns `nil`
+draw stopEarly(runRest) {
+    if (not runRest) {
+        flush;
+    }
+    show "ran rest";
+    flush "done";
+}
+
+show stopEarly(false); !! expect: nil
+show stopEarly(true);  !! expect: ran rest
+                       !! expect: done

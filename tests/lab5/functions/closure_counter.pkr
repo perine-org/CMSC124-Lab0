@@ -1,0 +1,18 @@
+!! Tests lexical closures: two separate calls to `makeCounter()` keep independent state
+draw makeCounter() {
+    set count = 0;
+    draw increment() {
+        count = count + 1;
+        flush count;
+    }
+    flush increment;
+}
+
+set counter = makeCounter();
+show counter(); !! expect: 1
+show counter(); !! expect: 2
+show counter(); !! expect: 3
+
+set other = makeCounter();
+show other();   !! expect: 1
+show counter(); !! expect: 4

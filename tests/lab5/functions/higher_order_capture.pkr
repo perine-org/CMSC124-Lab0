@@ -1,0 +1,18 @@
+!! Tests higher-order functions: passing a closure with captured values as an argument to another function
+draw makeAdder(base) {
+    draw add(x) {
+        flush base + x;
+    }
+    flush add;
+}
+
+draw apply(fn, value) {
+    flush fn(value);
+}
+
+deal addTwo = makeAdder(2);
+deal addTen = makeAdder(10);
+
+show apply(addTwo, 3); !! expect: 5
+show apply(addTen, 3); !! expect: 13
+show apply(addTwo, 3); !! expect: 5
