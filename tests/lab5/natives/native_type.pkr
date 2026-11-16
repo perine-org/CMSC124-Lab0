@@ -1,0 +1,7 @@
+show type(1);          !! expect: number
+show type("hi");       !! expect: string
+show type(true);       !! expect: bool
+show type(1 == 2);     !! expect: bool
+set n;
+show type(n);          !! expect: nil
+show type(type);       !! expect: function

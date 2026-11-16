@@ -1,0 +1,2 @@
+set x = 5;
+x();   !! expect runtime error: Can only call functions.

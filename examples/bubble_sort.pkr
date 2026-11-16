@@ -1,0 +1,60 @@
+!! showcase: bubble sort
+
+draw pow10(k) {
+    set p = 1;
+    while (k > 0) {
+        p = p * 10;
+        k = k - 1;
+    }
+    flush p;
+}
+
+!! reads the digit at position i
+draw digitAt(n, i) {
+    set p = pow10(i);
+    set q = (n - n % p) / p;      !! integer division, since the language has no floor
+    flush q % 10;
+}
+
+draw digitCount(n) {
+    set count = 0;
+    while (n > 0) {
+        n = (n - n % 10) / 10;
+        count = count + 1;
+    }
+    flush count;
+}
+
+!! swaps the digits at positions i and i + 1 and returns the new number
+draw swapAt(n, i) {
+    set p0 = pow10(i);
+    set p1 = p0 * 10;
+    set a = digitAt(n, i);
+    set b = digitAt(n, i + 1);
+    flush n - a * p0 - b * p1 + b * p0 + a * p1;
+}
+
+!! classic bubble sort: keep sweeping until a full pass makes no swap.
+!! the ones place is position 0, so swapping when a < b leaves the smallest digit leftmost
+draw bubbleSort(n) {
+    set len = digitCount(n);
+    set swapped = true;
+    while (swapped) {
+        swapped = false;
+        set i = 0;
+        while (i < len - 1) {
+            if (digitAt(n, i) < digitAt(n, i + 1)) {
+                n = swapAt(n, i);
+                swapped = true;
+            }
+            i = i + 1;
+        }
+    }
+    flush n;
+}
+
+show bubbleSort(52413);
+show bubbleSort(9182736);
+show bubbleSort(111);
+show bubbleSort(5);
+show bubbleSort(987654321);

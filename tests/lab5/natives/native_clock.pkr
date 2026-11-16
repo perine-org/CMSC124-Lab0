@@ -1,0 +1,5 @@
+set a = clock();
+set b = clock();
+show b >= a;        !! expect: true
+show type(a);       !! expect: number
+show type(clock);   !! expect: function
