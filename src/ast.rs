@@ -96,6 +96,11 @@ pub enum Stmt {
         params: Vec<Token>,
         body: Vec<Stmt>,
     },
+
+    // exits the current function and sends a value back (or `nil` if no expression is given)
+    Return {
+        value: Option<Expr>,
+    },
 }
 
 // one statement per line, so --parse output stays readable
@@ -181,6 +186,10 @@ impl fmt::Display for Stmt {
                 }
                 write!(f, "))")
             }
+            Stmt::Return { value } => match value {
+                Some(expr) => write!(f, "(flush {})", expr),
+                None => write!(f, "(flush)"),
+            },
         }
     }
 }

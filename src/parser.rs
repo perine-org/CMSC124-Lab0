@@ -94,7 +94,7 @@ impl Parser {
         Ok(Stmt::Function { name, params, body })
     }
 
-    // * <statement> ::= <if_stmt> | <while_stmt> | <for_stmt> | <show_stmt> | <block> | <expr_stmt>
+    // * <statement> ::= <if_stmt> | <while_stmt> | <for_stmt> | <flush_stmt> | <show_stmt> | <block> | <expr_stmt>
     // TODO: Control-flow keywords (if, else, while, for) are for template purposes in Lab 5 and will change once we decide on our final programming language ideas.
     fn statement(&mut self) -> Result<Stmt, ParseError> {
         if self.match_types(&[TokenType::If]) {
@@ -105,6 +105,9 @@ impl Parser {
         }
         if self.match_types(&[TokenType::For]) {
             return self.for_statement();
+        }
+        if self.match_types(&[TokenType::Flush]) {
+            return self.return_statement();
         }
         if self.match_types(&[TokenType::Show]) {
             return self.show_statement();
@@ -220,6 +223,18 @@ impl Parser {
         // report an unclosed block if we hit EOF without finding '}'
         self.consume(TokenType::RightBrace, "Expect '}' after block.")?;
         Ok(statements)
+    }
+
+    // * <flush_stmt> ::= "flush" <expression>? ";"
+    // if ";" comes right after `flush`, there is no return expression (returns `nil`)
+    fn return_statement(&mut self) -> Result<Stmt, ParseError> {
+        let value = if self.check(&TokenType::Semicolon) {
+            None
+        } else {
+            Some(self.parse_expression()?)
+        };
+        self.consume(TokenType::Semicolon, "Expect ';' after return value.")?;
+        Ok(Stmt::Return { value })
     }
 
     // * <show_stmt> ::= "show" <expression> ";"
