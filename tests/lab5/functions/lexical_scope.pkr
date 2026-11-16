@@ -1,0 +1,13 @@
+!! Tests lexical vs dynamic scoping: `greet` reads the outer `greeting` where it was written, not `rude`'s local variable
+set greeting = "Hello";
+
+draw greet() {
+    show greeting;
+}
+
+draw rude() {
+    set greeting = "Go away";
+    greet();
+}
+
+rude(); !! expect: Hello
