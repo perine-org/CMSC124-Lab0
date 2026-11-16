@@ -25,6 +25,13 @@ impl RuntimeError {
     }
 }
 
+// tells the caller whether a statement finished normally or hit a `flush` (return)
+// so nested blocks, `if`s, and `while` loops know to stop and pass the return value up
+pub enum Flow {
+    Normal,
+    Return(Value),
+}
+
 // holds the evaluator's state. empty danay; week 2 will add enivormnetn
 // so file mode and the REPL can share one instance and variables persist.
 #[derive(Default)]
@@ -44,24 +51,26 @@ impl Interpreter {
         for stmt in &program.statements {
             match stmt {
                 Stmt::Expression(e) if echo => println!("{}", self.eval(e)?),
-                other => self.execute(other)?,
+                other => {
+                    self.execute(other)?;
+                }
             }
         }
         Ok(())
     }
 
     // runs one statement for its effect
-    // Expression: evaluate and discard the value; Show: print the value to stdout
-    pub fn execute(&mut self, stmt: &Stmt) -> Result<(), RuntimeError> {
+    // returns `Flow::Return(v)` if `flush` was hit so outer blocks/loops stop immediately
+    pub fn execute(&mut self, stmt: &Stmt) -> Result<Flow, RuntimeError> {
         match stmt {
             Stmt::Expression(e) => {
                 self.eval(e)?;
-                Ok(())
+                Ok(Flow::Normal)
             }
             Stmt::Show(e) => {
                 let v = self.eval(e)?;
                 println!("{}", v);
-                Ok(())
+                Ok(Flow::Normal)
             }
             Stmt::VarDecl { name, initializer, mutable } => {
                 // evaluate first, so `set a = a;` fails as an undefined read
@@ -70,23 +79,26 @@ impl Interpreter {
                     None => Value::Nil, // `set a;` holds nil
                 };
                 self.env.borrow_mut().define(&name.lexeme, value, *mutable);
-                Ok(())
+                Ok(Flow::Normal)
             }
             // a block gets its own scope; execute_block restores the old one afterward
             Stmt::Block(statements) => self.execute_block(statements),
             Stmt::If { condition, then_branch, else_branch } => {
                 if self.eval(condition)?.is_truthy() {
-                    self.execute(then_branch)?;
+                    self.execute(then_branch)
                 } else if let Some(else_stmt) = else_branch {
-                    self.execute(else_stmt)?;
+                    self.execute(else_stmt)
+                } else {
+                    Ok(Flow::Normal)
                 }
-                Ok(())
             }
             Stmt::While { condition, body } => {
                 while self.eval(condition)?.is_truthy() {
-                    self.execute(body)?;
+                    if let Flow::Return(v) = self.execute(body)? {
+                        return Ok(Flow::Return(v));
+                    }
                 }
-                Ok(())
+                Ok(Flow::Normal)
             }
             // declaring a function binds its name to a function value that remembers the
             // scope it was declared in. the name is immutable, like a `deal`
@@ -100,37 +112,51 @@ impl Interpreter {
                 self.env
                     .borrow_mut()
                     .define(&name.lexeme, Value::Function(Rc::new(function)), false);
-                Ok(())
+                Ok(Flow::Normal)
+            }
+            // evaluates the return value (or `nil` for bare `flush;`) and signals callers to stop
+            Stmt::Return { value } => {
+                let ret_val = match value {
+                    Some(expr) => self.eval(expr)?,
+                    None => Value::Nil,
+                };
+                Ok(Flow::Return(ret_val))
             }
         }
     }
 
     // a plain { ... } block: runs in a new child scope of the current one
-    fn execute_block(&mut self, statements: &[Stmt]) -> Result<(), RuntimeError> {
+    fn execute_block(&mut self, statements: &[Stmt]) -> Result<Flow, RuntimeError> {
         let child = Rc::new(RefCell::new(Environment::with_enclosing(Rc::clone(&self.env))));
         self.execute_in(statements, child)
     }
 
     // runs statements with `env` as the active scope, then always goes back to the old scope.
-    // the restore happens even if a statement fails, so a runtime error inside { ... }
-    // can't leave the REPL stuck in a dead block scope. function calls use this too,
-    // passing in the call's own environment
+    // the restore happens even if a statement fails or returns early, so a runtime error or `flush`
+    // inside { ... } can't leave the interpreter stuck in an inner scope
     pub fn execute_in(
         &mut self,
         statements: &[Stmt],
         env: Rc<RefCell<Environment>>,
-    ) -> Result<(), RuntimeError> {
+    ) -> Result<Flow, RuntimeError> {
         let previous = std::mem::replace(&mut self.env, env);
 
-        let mut result = Ok(());
+        let mut result = Ok(Flow::Normal);
         for stmt in statements {
-            if let Err(err) = self.execute(stmt) {
-                result = Err(err);
-                break; // no `?` here: it would return before the scope is restored below
+            match self.execute(stmt) {
+                Ok(Flow::Normal) => {}
+                Ok(Flow::Return(v)) => {
+                    result = Ok(Flow::Return(v));
+                    break; // stop running remaining statements in the block and restore scope below
+                }
+                Err(err) => {
+                    result = Err(err);
+                    break; // no `?` here: it would return before the scope is restored below
+                }
             }
         }
 
-        self.env = previous; // restore before returning, success or error
+        self.env = previous; // restore before returning, whether normal, early return, or error
         result
     }
 
