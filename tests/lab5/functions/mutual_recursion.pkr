@@ -1,0 +1,18 @@
+!! Tests mutual recursion: two functions calling each other on a small terminating input
+draw isEven(n) {
+    if (n == 0) {
+        flush true;
+    }
+    flush isOdd(n - 1);
+}
+
+draw isOdd(n) {
+    if (n == 0) {
+        flush false;
+    }
+    flush isEven(n - 1);
+}
+
+show isEven(4); !! expect: true
+show isOdd(4);  !! expect: false
+show isOdd(5);  !! expect: true
