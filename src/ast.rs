@@ -47,6 +47,8 @@ pub enum Expr {
         left: Box<Expr>,
         operator: Token,
         right: Box<Expr>,
+    },
+
     // calls whatever the callee expression evaluates to; `paren` is the ')' kept so
     // call errors can report a line number
     Call {
@@ -86,6 +88,8 @@ pub enum Stmt {
     While {
         condition: Expr,
         body: Box<Stmt>,
+    },
+
     // declares a function: its name, parameter names, and body statements
     Function {
         name: Token,
@@ -129,6 +133,7 @@ impl fmt::Display for Expr {
             }
             Expr::Logical { left, operator, right } => {
                 write!(f, "({} {} {})", operator.lexeme, left, right)
+            }
             Expr::Call { callee, arguments, .. } => {
                 write!(f, "(call {}", callee)?;
                 for arg in arguments {
@@ -167,6 +172,7 @@ impl fmt::Display for Stmt {
             },
             Stmt::While { condition, body } => {
                 write!(f, "(while {} {})", condition, body)
+            }
             Stmt::Function { name, params, body } => {
                 let names: Vec<&str> = params.iter().map(|p| p.lexeme.as_str()).collect();
                 write!(f, "(draw {} ({}) (block", name.lexeme, names.join(" "))?;

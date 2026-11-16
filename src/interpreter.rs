@@ -86,6 +86,8 @@ impl Interpreter {
                 while self.eval(condition)?.is_truthy() {
                     self.execute(body)?;
                 }
+                Ok(())
+            }
             // declaring a function binds its name to a function value that remembers the
             // scope it was declared in. the name is immutable, like a `deal`
             Stmt::Function { name, params, body } => {

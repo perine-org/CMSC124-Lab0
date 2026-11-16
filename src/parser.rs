@@ -72,8 +72,6 @@ impl Parser {
         })
     }
 
-    // * <statement> ::= <if_stmt> | <while_stmt> | <for_stmt> | <show_stmt> | <block> | <expr_stmt>
-    // TODO: Control-flow keywords (if, else, while, for) are for template purposes in Lab 5 and will change once we decide on our final programming language ideas.
     // * <fun_decl>   ::= "draw" IDENTIFIER "(" <parameters>? ")" <block>
     // * <parameters> ::= IDENTIFIER ( "," IDENTIFIER )*
     fn function_declaration(&mut self) -> Result<Stmt, ParseError> {
@@ -96,7 +94,8 @@ impl Parser {
         Ok(Stmt::Function { name, params, body })
     }
 
-    // * <statement> ::= <show_stmt> | <block> | <expr_stmt>
+    // * <statement> ::= <if_stmt> | <while_stmt> | <for_stmt> | <show_stmt> | <block> | <expr_stmt>
+    // TODO: Control-flow keywords (if, else, while, for) are for template purposes in Lab 5 and will change once we decide on our final programming language ideas.
     fn statement(&mut self) -> Result<Stmt, ParseError> {
         if self.match_types(&[TokenType::If]) {
             return self.if_statement();
